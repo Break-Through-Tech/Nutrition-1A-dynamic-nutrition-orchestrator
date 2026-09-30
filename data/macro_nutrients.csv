@@ -1,0 +1,8 @@
+id,name,unit_name,nutrient_nbr,short_name
+2047,Energy (Atwater General Factors),KCAL,957,kcal_atwater_general
+2048,Energy (Atwater Specific Factors),KCAL,958,kcal_atwater_specific
+1003,Protein,G,203,protein_g
+1004,Total lipid (fat),G,204,fat_g
+1005,"Carbohydrate, by difference",G,205,carbs_g
+1008,Energy,KCAL,208,kcal
+1079,"Fiber, total dietary",G,291,fiber_g
