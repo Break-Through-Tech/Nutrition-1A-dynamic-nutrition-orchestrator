@@ -38,7 +38,7 @@ Create a local, structured dataset from the provided recipe and ingredient seed 
 ## Task 2: Integrate USDA FoodData Central Data
 
 **Owner:**  
-**Status:** 🟡 In Progress
+**Status:** Completed
 
 ### Goal
 
@@ -130,6 +130,9 @@ The engine should:
 5. Sum nutrition across ingredients.
 6. Produce daily totals.
 7. Produce weekly totals for a seven-day plan.
+8. Test the engine against known expected nutrition totals.
+9. Verify that ingredient, recipe, meal, and daily totals are calculated correctly.
+10. Document and fix any arithmetic discrepancies.
 
 ### Main Design Rule
 
