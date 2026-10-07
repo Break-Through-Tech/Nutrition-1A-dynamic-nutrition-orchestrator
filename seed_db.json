@@ -1,0 +1,272 @@
+{
+  "ingredients": {
+    "paneer_low_fat": {
+      "name": "Low-fat paneer",
+      "category": "dairy_protein",
+      "fdc_id": null,
+      "aliases": [
+        "low-fat paneer",
+        "low fat paneer",
+        "low-fat / skim-milk paneer",
+        "crumbled low-fat paneer",
+        "grated low-fat paneer",
+        "grilled low-fat paneer"
+      ]
+    },
+    "tofu_extra_firm": {
+      "name": "Extra-firm tofu",
+      "category": "soy_protein",
+      "fdc_id": null,
+      "aliases": [
+        "extra-firm tofu",
+        "firm tofu",
+        "tofu"
+      ]
+    },
+    "soya_chunks_dry": {
+      "name": "Soya chunks (dry)",
+      "category": "soy_protein",
+      "fdc_id": null,
+      "aliases": [
+        "dry soya chunks",
+        "soya chunks",
+        "large soya chunks"
+      ]
+    },
+    "soya_granules_dry": {
+      "name": "Soya granules (dry)",
+      "category": "soy_protein",
+      "fdc_id": null,
+      "aliases": [
+        "dry soya granules",
+        "soya granules",
+        "soya keema"
+      ]
+    },
+    "oats": {
+      "name": "Oats",
+      "category": "grain",
+      "fdc_id": null,
+      "aliases": [
+        "oats",
+        "whole oats",
+        "rolled oats"
+      ]
+    },
+    "greek_yogurt_lowfat": {
+      "name": "Low-fat Greek yogurt",
+      "category": "dairy_protein",
+      "fdc_id": null,
+      "aliases": [
+        "low-fat greek yogurt",
+        "greek yogurt"
+      ]
+    },
+    "whey_isolate": {
+      "name": "Whey protein isolate",
+      "category": "supplement",
+      "fdc_id": null,
+      "aliases": [
+        "unflavored whey",
+        "whey isolate",
+        "whey protein isolate"
+      ]
+    },
+    "brown_rice": {
+      "name": "Brown rice",
+      "category": "grain",
+      "fdc_id": null,
+      "aliases": [
+        "brown rice"
+      ]
+    },
+    "green_peas": {
+      "name": "Green peas",
+      "category": "vegetable",
+      "fdc_id": null,
+      "aliases": [
+        "green peas",
+        "matar"
+      ]
+    },
+    "atta": {
+      "name": "Whole wheat flour (atta)",
+      "category": "grain",
+      "fdc_id": null,
+      "aliases": [
+        "whole wheat flour",
+        "atta",
+        "whole wheat atta"
+      ]
+    },
+    "ghee": {
+      "name": "Ghee",
+      "category": "fat",
+      "fdc_id": null,
+      "aliases": [
+        "ghee"
+      ]
+    },
+    "cooking_oil": {
+      "name": "Cooking oil",
+      "category": "fat",
+      "fdc_id": null,
+      "aliases": [
+        "oil",
+        "cooking oil"
+      ]
+    },
+    "kala_chana": {
+      "name": "Kala chana (black chickpeas)",
+      "category": "legume",
+      "fdc_id": null,
+      "aliases": [
+        "kala chana",
+        "black chana",
+        "dry-roasted chana"
+      ]
+    },
+    "almonds": {
+      "name": "Almonds",
+      "category": "nut_seed",
+      "fdc_id": null,
+      "aliases": [
+        "almonds"
+      ]
+    }
+  },
+  "recipes": {
+    "soya_matar_curry_list": {
+      "name": "Soya Chunks Matar Curry with Brown Rice",
+      "meal_type": "lunch",
+      "source": "grocery_list",
+      "servings_basis": 1,
+      "steps": [
+        "Boil soya chunks 10 min, squeeze dry.",
+        "Cook brown rice.",
+        "Saute gravy base with spices in 1 tsp oil.",
+        "Add soya + peas, toss 2 min.",
+        "Add 150ml water, simmer 10 min, finish with garam masala."
+      ],
+      "tags": [
+        "batch_base_gravy"
+      ],
+      "stated_protein_g": 40,
+      "diet": "vegetarian",
+      "cuisine": "indian"
+    },
+    "paneer_bhurji_roti_list": {
+      "name": "Paneer Bhurji with Whole Wheat Roti",
+      "meal_type": "dinner",
+      "source": "grocery_list",
+      "servings_basis": 1,
+      "steps": [
+        "Make 2 rotis.",
+        "Saute onion, chilli, tomato.",
+        "Crumble paneer in, cook 3-4 min max."
+      ],
+      "tags": [],
+      "stated_protein_g": 35,
+      "diet": "vegetarian",
+      "cuisine": "indian"
+    }
+  },
+  "recipe_items": [
+    {
+      "recipe_id": "soya_matar_curry_list",
+      "ingredient_id": "soya_chunks_dry",
+      "qty": 60.0,
+      "unit": "g",
+      "qty_g": 60.0,
+      "note": "Dry Soya Chunks"
+    },
+    {
+      "recipe_id": "soya_matar_curry_list",
+      "ingredient_id": "green_peas",
+      "qty": 50.0,
+      "unit": "g",
+      "qty_g": 50.0,
+      "note": "Green Peas"
+    },
+    {
+      "recipe_id": "soya_matar_curry_list",
+      "ingredient_id": "brown_rice",
+      "qty": 60.0,
+      "unit": "g",
+      "qty_g": 60.0,
+      "note": "Brown Rice"
+    },
+    {
+      "recipe_id": "soya_matar_curry_list",
+      "ingredient_id": "cooking_oil",
+      "qty": 1.0,
+      "unit": "tsp",
+      "qty_g": 4.5,
+      "note": "oil"
+    },
+    {
+      "recipe_id": "paneer_bhurji_roti_list",
+      "ingredient_id": "paneer_low_fat",
+      "qty": 150.0,
+      "unit": "g",
+      "qty_g": 150.0,
+      "note": "Low-fat Paneer"
+    },
+    {
+      "recipe_id": "paneer_bhurji_roti_list",
+      "ingredient_id": "atta",
+      "qty": 50.0,
+      "unit": "g",
+      "qty_g": 50.0,
+      "note": "Whole wheat flour"
+    },
+    {
+      "recipe_id": "paneer_bhurji_roti_list",
+      "ingredient_id": "ghee",
+      "qty": 1.0,
+      "unit": "tsp",
+      "qty_g": 4.7,
+      "note": "ghee"
+    }
+  ],
+  "meal_slots": [
+    {
+      "source": "grocery_list",
+      "day": "Monday",
+      "slot": "lunch",
+      "recipe_id": "soya_matar_curry_list"
+    },
+    {
+      "source": "grocery_list",
+      "day": "Monday",
+      "slot": "dinner",
+      "recipe_id": "paneer_bhurji_roti_list"
+    },
+    {
+      "source": "grocery_list",
+      "day": "Thursday",
+      "slot": "lunch",
+      "recipe_id": "soya_matar_curry_list"
+    },
+    {
+      "source": "grocery_list",
+      "day": "Thursday",
+      "slot": "dinner",
+      "recipe_id": "paneer_bhurji_roti_list"
+    }
+  ],
+  "sources": {
+    "grocery_list": {
+      "title": "High-Protein Indian Vegetarian Meal Plan & Grocery List",
+      "file": "High-Protein_Indian_Vegetarian_Meal_Plan___Grocery_List.pdf",
+      "recipe_quantities": "per person",
+      "servings_basis": 1
+    },
+    "grocery_matrix": {
+      "title": "High-Protein Indian Vegetarian Meal Plan & Grocery Matrix",
+      "file": "High-Protein_Vegetarian_Meal_Plan___Grocery_Matrix.pdf",
+      "recipe_quantities": "batch for family of 4 (assumed; adult/kid split unclear)",
+      "servings_basis": 4
+    }
+  }
+}
