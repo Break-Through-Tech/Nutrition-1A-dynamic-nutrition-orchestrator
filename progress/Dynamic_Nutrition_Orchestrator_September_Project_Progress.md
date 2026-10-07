@@ -1,4 +1,4 @@
-# Dynamic Nutrition Orchestrator: September Project Progress
+# Dynamic Nutrition Orchestrator: Project Progress
 
 ## September: Architecture, Data Pipelines & Deterministic Baseline
 
@@ -136,53 +136,43 @@ The engine should:
 The LLM should not perform the final nutrition arithmetic. The LLM/NLP side can interpret the recipe and identify ingredients, while deterministic code handles the actual calculations.
 
 ---
+## Task 4: Normalize Ingredient Quantities and Units
 
-## Task 4: Implement Ingredient Quantity and Unit Handling
-
-**Owner:**  
+**Owner:**
 **Status:** 🟡 In Progress
 
 ### Goal
 
-Convert quantities such as:
+Convert the quantities in the recipe dataset into consistent, calculation-ready measurements for the deterministic macro engine.
+
+The recipe dataset already stores:
 
 ```text
-2 cups rice
-1 tbsp olive oil
-3 pieces paneer
-1/2 cup dal
+recipe_id | ingredient_name | quantity | unit
 ```
 
-into consistent gram-based quantities.
+This task focuses on making those quantities usable for nutrition calculations.
 
-### Work Completed
+### Work Includes
 
-The repository has cleaned portion and measurement data.
+* Preserve the existing `quantity` and `unit` from the recipe dataset.
+* Normalize standard units such as `g`, `tsp`, `tbsp`, `slice`, and `small`.
+* Use USDA portion and measurement data where available to convert non-gram quantities into grams.
+* Identify ambiguous units such as `servings`.
+* Define consistent handling for ingredients where a direct gram conversion is unavailable.
+* Produce a final `amount_g` value that can be passed to the deterministic macro calculator.
 
-`cleanedData/food_portion_clean.csv`:
+### Example
 
 ```text
-fdc_id
-unit_id
-unit_name
-unit_category
-modifier
-g_per_unit
-g_min
-g_max
-n_obs
+recipe_id | ingredient_name | quantity | unit | amount_g
+S1-R01    | Oats            | 50       | g    | 50
+S1-R01    | Yogurt          | 150      | g    | 150
+S1-R01    | Mustard seeds   | 0.25     | tsp  | X
+S1-R01    | Oil             | 1        | tsp  | X
 ```
 
-`cleanedData/measure_unit_clean.csv` also exists for normalized measurement units.
-
-This gives us the data needed to convert recipe units into gram weights.
-
-### Remaining Work
-
-- Connect recipe quantities to the cleaned measurement/portion data.
-- Implement conversion logic.
-- Handle common units consistently.
-- Pass the final gram amount into the deterministic macro engine.
+The main output of this task is a consistent gram-based quantity that the macro calculation engine can use.
 
 ---
 
@@ -351,11 +341,3 @@ For the September baseline, the main goal is to define these metrics and prepare
 | Evaluation benchmarks | | 🟡 Defined |
 
 ---
-
-# September Milestone
-
-By the end of September, the goal is to have a working deterministic first-phase prototype:
-
-> **User requirements -> fixed local recipes -> keyword/NLP ingredient matching -> USDA `fdc_id` resolution -> quantity/gram conversion -> deterministic macro calculation -> daily/weekly meal plan**
-
-This gives us the baseline that later phases can build on.
