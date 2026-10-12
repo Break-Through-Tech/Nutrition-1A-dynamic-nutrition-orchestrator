@@ -1,3 +1,8 @@
-API_KEY = "NfyMaKQi3W7HOQMGcWVwnia0TykDYgzeQzR1Ymge"
+import os
+
+api_key = os.getenv("API_KEY")
+if not api_key:
+    raise ValueError("API_KEY is not set")
+
 BASE_URL = "https://api.nal.usda.gov"
 food_storage = {}
