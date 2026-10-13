@@ -1,5 +1,7 @@
 
 import re
+from pathlib import Path
+
 import pandas as pd
 
 
@@ -7,7 +9,11 @@ import pandas as pd
 # 1. CONFIGURATION
 # =========================================================
 
-FOODS_PATH = "../cleanedData/clean_usda_foods.csv"
+FOODS_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "cleanedData"
+    / "clean_usda_foods.csv"
+)
 
 NUTRIENTS = [
     "calories_kcal",
@@ -22,68 +28,163 @@ NUTRIENTS = [
     "iron_mg",
 ]
 
-# These are starting thresholds, not calibrated probabilities.
 MIN_MATCH_SCORE = 0.35
 HIGH_CONFIDENCE_SCORE = 0.80
 MEDIUM_CONFIDENCE_SCORE = 0.60
+
+
+# Words that usually do not help identify the ingredient.
+STOP_WORDS = {
+    "a", "an", "the", "and", "of", "with", "for",
+    "to", "in", "on", "from", "about",
+}
+
+# Preparation instructions are usually irrelevant to food identity.
+PREPARATION_WORDS = {
+    "chopped", "diced", "minced", "sliced", "grated",
+    "shredded", "cubed", "crushed", "finely", "roughly",
+    "thinly", "thickly", "peeled", "halved", "quartered",
+}
+
+# Descriptors that can indicate a different form of an ingredient.
+FORM_QUALIFIERS = {
+    "dried", "dehydrated", "powder", "powdered",
+    "white", "yolk", "pickled", "smoked", "salted",
+    "unsalted", "frozen", "canned", "concentrated",
+    "extract", "juice", "oil", "sauce", "paste",
+}
+
+# Common words that indicate a prepared product rather than
+# a basic ingredient. Singular and plural forms are included.
+PREPARED_PRODUCT_TERMS = {
+    "bread", "bagel", "sandwich", "burrito", "quesadilla",
+    "taquito", "pizza", "salad", "soup", "dip",
+    "casserole", "stuffing", "noodle", "pasta", "cracker",
+    "chip", "ring", "burger", "sushi", "benedict",
+    "deviled", "omelet", "omelette", "pancake", "waffle",
+    "cookie", "cake", "pie", "pastry", "muffin",
+    "snack", "gravy", "dressing", "spread", "topping",
+    "candy", "dessert", "custard",
+}
+
+# Basic unit conversions.
+# Volume-to-weight conversions depend on the ingredient.
+GRAMS_PER_UNIT = {
+    "kg": 1000.0,
+    "g": 1.0,
+    "gram": 1.0,
+    "grams": 1.0,
+    "mg": 0.001,
+    "milligram": 0.001,
+    "milligrams": 0.001,
+}
+
+GRAMS_PER_CUP = {
+    "all purpose flour": 120.0,
+    "flour": 120.0,
+    "whole wheat flour": 120.0,
+    "granulated sugar": 200.0,
+    "sugar": 200.0,
+    "brown sugar": 220.0,
+    "powdered sugar": 120.0,
+    "butter": 227.0,
+    "unsalted butter": 227.0,
+    "salted butter": 227.0,
+    "water": 240.0,
+    "milk": 244.0,
+    "whole milk": 244.0,
+    "honey": 340.0,
+    "olive oil": 216.0,
+    "vegetable oil": 218.0,
+    "rolled oats": 90.0,
+    "oats": 90.0,
+    "rice": 185.0,
+    "white rice": 185.0,
+    "chopped onion": 160.0,
+    "onion": 160.0,
+    "chopped tomato": 180.0,
+    "tomato": 180.0,
+    "shredded cheese": 113.0,
+    "cheese": 113.0,
+    "peanut butter": 258.0,
+}
+
+GRAMS_PER_ITEM = {
+    "egg": 50.0,
+    "large egg": 50.0,
+    "medium egg": 44.0,
+    "small egg": 38.0,
+    "onion": 150.0,
+    "garlic clove": 3.0,
+    "clove garlic": 3.0,
+    "tomato": 123.0,
+    "medium tomato": 123.0,
+    "lemon": 58.0,
+    "lime": 67.0,
+    "apple": 182.0,
+    "banana": 118.0,
+    "carrot": 61.0,
+    "potato": 173.0,
+    "slice bread": 30.0,
+    "bread slice": 30.0,
+}
 
 
 # =========================================================
 # 2. TEXT NORMALIZATION
 # =========================================================
 
-STOP_WORDS = {
-    "a", "an", "the", "and", "of", "with", "for",
-    "to", "in", "on", "from", "about"
-}
-
-# Convert common alternate phrases to a consistent form.
-ALIASES = {
-    "without salt": "unsalted",
-    "no salt": "unsalted",
-    "extra-virgin": "extra virgin",
-    "all-purpose": "all purpose",
-}
-
-# Words describing preparation that usually do not identify
-# a different food. Preserve raw, cooked, salted, etc.
-PREPARATION_WORDS = {
-    "chopped", "diced", "minced", "sliced",
-    "grated", "shredded", "cubed", "crushed",
-    "finely", "roughly", "thinly", "thickly",
-    "peeled", "halved", "quartered"
-}
-
-# Remove measurement words from ingredient names.
-# Quantity and unit should ideally be stored separately.
-MEASUREMENT_WORDS = {
-    "g", "gram", "grams",
-    "kg", "kilogram", "kilograms",
-    "mg", "milligram", "milligrams",
-    "ml", "milliliter", "milliliters",
-    "tsp", "teaspoon", "teaspoons",
-    "tbsp", "tablespoon", "tablespoons",
-    "cup", "cups",
-    "oz", "ounce", "ounces",
-    "lb", "lbs", "pound", "pounds"
-}
-
-
 def normalize_text(text):
-    """Normalize spelling and punctuation before tokenization."""
+    """Lowercase text and normalize common ingredient wording."""
 
-    text = str(text).lower()
+    if pd.isna(text):
+        return ""
 
-    for phrase, replacement in ALIASES.items():
-        text = text.replace(phrase, replacement)
+    text = str(text).lower().strip()
 
+    # Normalize common wording without equating different foods.
+    replacements = {
+        "all-purpose": "all purpose",
+        "self-rising": "self rising",
+        "extra-virgin": "extra virgin",
+        "tbsps": "tbsp",
+        "tablespoons": "tbsp",
+        "tablespoon": "tbsp",
+        "teaspoons": "tsp",
+        "teaspoon": "tsp",
+        "cups": "cup",
+        "ounces": "ounce",
+        "pounds": "pound",
+    }
+
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+
+    # Remove punctuation while retaining letters and numbers.
     text = re.sub(r"[^a-z0-9\s]", " ", text)
+    text = re.sub(r"\s+", " ", text)
 
-    return re.sub(r"\s+", " ", text).strip()
+    return text.strip()
+
+
+def normalize_word(word):
+    """Apply conservative singularization for common plural words."""
+
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"
+
+    if (
+        len(word) > 4
+        and word.endswith("s")
+        and not word.endswith(("ss", "us", "is"))
+    ):
+        return word[:-1]
+
+    return word
 
 
 def tokenize(text, remove_preparation=False):
-    """Convert text into a set of normalized keywords."""
+    """Convert text to normalized ingredient keywords."""
 
     text = normalize_text(text)
     words = text.split()
@@ -91,14 +192,12 @@ def tokenize(text, remove_preparation=False):
     result = set()
 
     for word in words:
+        word = normalize_word(word)
+
         if word in STOP_WORDS:
             continue
 
-        if word in MEASUREMENT_WORDS:
-            continue
-
-        # Remove numbers such as quantities from ingredient names.
-        if word.isdigit():
+        if word in {"g", "kg", "mg", "ml", "cup", "tsp", "tbsp"}:
             continue
 
         if remove_preparation and word in PREPARATION_WORDS:
@@ -110,306 +209,262 @@ def tokenize(text, remove_preparation=False):
 
 
 # =========================================================
-# 3. LOAD AND PREPROCESS USDA DATA
+# 3. LOAD USDA FOOD DATA
 # =========================================================
 
 def load_foods(path=FOODS_PATH):
-    """Load USDA data and precompute tokens for faster matching."""
+    """Load USDA foods and precompute searchable word sets."""
 
     foods = pd.read_csv(path)
 
-    required_columns = {"description", "fdc_id"}
-
+    required_columns = {"fdc_id", "description"}
     missing = required_columns - set(foods.columns)
 
     if missing:
         raise ValueError(
-            f"USDA CSV is missing required columns: {missing}"
+            f"The USDA CSV is missing required columns: {sorted(missing)}"
         )
 
-    foods["description"] = (
-        foods["description"].fillna("").astype(str)
-    )
+    foods["description"] = foods["description"].fillna("").astype(str)
+
+    for nutrient in NUTRIENTS:
+        if nutrient not in foods.columns:
+            foods[nutrient] = 0.0
+
+        foods[nutrient] = pd.to_numeric(
+            foods[nutrient], errors="coerce"
+        ).fillna(0.0)
 
     foods["tokens"] = foods["description"].apply(tokenize)
 
-    # Tokens with preparation words removed are useful for
-    # finding a base food, such as chopped onion -> onion.
     foods["base_tokens"] = foods["description"].apply(
-        lambda text: tokenize(text, remove_preparation=True)
+        lambda value: tokenize(value, remove_preparation=True)
     )
 
     return foods
 
 
-# Load once when this module is imported.
-foods = load_foods()
-
-
 # =========================================================
-# 4. MATCH SCORING
+# 4. INGREDIENT MATCHING
 # =========================================================
 
-# A requested descriptor should not match an incompatible food.
-CONFLICTS = {
-    "unsalted": {"salted"},
-    "salted": {"unsalted"},
-    "raw": {"cooked", "roasted", "fried", "boiled", "baked"},
-    "cooked": {"raw"},
-    "frozen": {"canned"},
-    "boneless": {"bone", "bonein"},
-    "skinless": {"skin"},
-    "whole": {"skim", "nonfat"},
-    "skim": {"whole"},
-    "nonfat": {"whole"},
-}
-
-# Important terms that should not be casually ignored.
-IMPORTANT_DESCRIPTORS = {
-    "raw", "cooked", "roasted", "fried", "boiled", "baked",
-    "unsalted", "salted", "fresh", "frozen", "canned",
-    "whole", "skim", "nonfat", "lowfat", "boneless",
-    "skinless", "virgin", "smoked", "dried"
-}
 
 
-def score_candidate(ingredient_words, food_words):
-    """
-    Score one candidate from 0 to 1.
 
-    The score measures text similarity, not the probability
-    that the food is nutritionally correct.
-    """
+def score_candidate(ingredient_words, food_words, description=""):
+    """Rank foods by primary identity, requested form, and relevance."""
 
     if not ingredient_words or not food_words:
         return 0.0
 
+    description = normalize_text(description)
+    description_words = tokenize(description)
     matching_words = ingredient_words & food_words
 
-    # Fraction of requested words covered by the candidate.
+    if not matching_words:
+        return 0.0
+
+    # Reward matching all requested ingredient words.
     coverage = len(matching_words) / len(ingredient_words)
+    score = 0.45 * coverage
 
-    # Prefer candidates whose words are more focused on the
-    # requested ingredient rather than a long generic description.
-    specificity = len(matching_words) / len(food_words)
+    # USDA descriptions often put the main food before the first comma.
+    parts = description.split(",")
+    primary_words = tokenize(parts[0]) if parts else set()
 
-    score = 0.85 * coverage + 0.15 * specificity
+    if ingredient_words <= primary_words:
+        score += 0.45
+    elif primary_words & ingredient_words:
+        score += 0.20
+    else:
+        # The ingredient appears only in a secondary description.
+        score -= 0.20
 
-    # Penalize contradictory descriptors.
-    for word in ingredient_words:
-        incompatible_words = CONFLICTS.get(word, set())
+    # Penalize unrequested forms such as powder, juice, or extract.
+    unwanted_forms = (
+        description_words & FORM_QUALIFIERS
+    ) - ingredient_words
+    score -= min(0.20, 0.08 * len(unwanted_forms))
 
-        if food_words & incompatible_words:
-            score -= 0.50
+    # Penalize prepared products that contain, rather than represent,
+    # the requested ingredient.
+    unwanted_products = (
+        description_words & PREPARED_PRODUCT_TERMS
+    ) - ingredient_words
+    score -= min(0.45, 0.30 * len(unwanted_products))
 
-    # If the recipe specifies a meaningful descriptor, penalize
-    # candidates that do not contain it.
-    missing_important = (
-        ingredient_words & IMPORTANT_DESCRIPTORS
-    ) - food_words
+    # Prefer ordinary raw, whole ingredients when no form was specified.
+    requested_form = ingredient_words & FORM_QUALIFIERS
 
-    score -= 0.20 * len(missing_important)
+    if not requested_form:
+        if "whole" in description_words:
+            score += 0.03
+        if "raw" in description_words:
+            score += 0.03
 
     return max(0.0, min(score, 1.0))
 
 
-def find_top_matches(ingredient_name, foods_df=None, top_n=5):
-    """
-    Return the highest-ranked USDA candidates.
 
-    Each result contains:
-        description, fdc_id, score, matched_words
-    """
+def find_top_matches(ingredient_name, foods, top_n=10):
+    """Return the highest-scoring USDA candidates for an ingredient."""
 
-    if foods_df is None:
-        foods_df = foods
-
-    ingredient_words = tokenize(ingredient_name)
+    ingredient_words = tokenize(
+        ingredient_name,
+        remove_preparation=True,
+    )
 
     if not ingredient_words:
         return []
 
     candidates = []
 
-    for index, food in foods_df.iterrows():
-
+    for _, food in foods.iterrows():
         food_words = food["tokens"]
+        description = food["description"]
 
         score = score_candidate(
             ingredient_words,
-            food_words
+            food_words,
+            description,
         )
 
-        if score > 0:
-            candidates.append({
-                "index": index,
-                "score": score,
-                "matched_words": sorted(
-                    ingredient_words & food_words
-                ),
-                "description": food["description"],
-                "fdc_id": food["fdc_id"],
-            })
+        if score <= 0:
+            continue
+
+        matched_words = ingredient_words & food_words
+
+        candidates.append({
+            "fdc_id": food["fdc_id"],
+            "description": description,
+            "score": score,
+            "matched_words": sorted(matched_words),
+            "nutrients": {
+                nutrient: float(food[nutrient])
+                for nutrient in NUTRIENTS
+            },
+        })
 
     candidates.sort(
         key=lambda candidate: candidate["score"],
-        reverse=True
+        reverse=True,
     )
 
     return candidates[:top_n]
 
 
-def find_best_food(ingredient_name, foods_df=None):
-    """
-    Return the best USDA match and its score.
+def find_best_food(ingredient_name, foods):
+    """Return the best match, or None if the match is too weak."""
 
-    Returns:
-        (food row, score), or (None, 0)
-    """
+    matches = find_top_matches(ingredient_name, foods, top_n=1)
 
-    if foods_df is None:
-        foods_df = foods
+    if not matches:
+        return None
 
-    candidates = find_top_matches(
-        ingredient_name,
-        foods_df,
-        top_n=1
-    )
-
-    if not candidates:
-        return None, 0.0
-
-    best = candidates[0]
+    best = matches[0]
 
     if best["score"] < MIN_MATCH_SCORE:
-        return None, best["score"]
+        return None
 
-    return foods_df.loc[best["index"]], best["score"]
+    return best
 
 
 def confidence_label(score):
-    """Label a match score for reporting."""
+    """Convert a match score to a readable confidence label."""
 
     if score >= HIGH_CONFIDENCE_SCORE:
-        return "high"
+        return "High"
 
     if score >= MEDIUM_CONFIDENCE_SCORE:
-        return "medium"
+        return "Medium"
 
     if score >= MIN_MATCH_SCORE:
-        return "low"
+        return "Low"
 
-    return "very_low"
+    return "Very low"
+
+
+def print_top_matches(ingredient_name, top_n=10, foods=None):
+    """Print ranked candidate foods for debugging."""
+
+    if foods is None:
+        foods = load_foods()
+
+    matches = find_top_matches(ingredient_name, foods, top_n)
+
+    print(f"\nIngredient: {ingredient_name}")
+
+    if not matches:
+        print("No matching foods found.")
+        return
+
+    for index, match in enumerate(matches, start=1):
+        print(
+            f"{index}. {match['description']} | "
+            f"Score: {match['score']:.3f} | "
+            f"Matched: {match['matched_words']}"
+        )
 
 
 # =========================================================
-# 5. QUANTITY CONVERSION
+# 5. UNIT CONVERSION
 # =========================================================
 
-# Approximate grams per US cup for selected ingredients.
-# Extend this dictionary as your project needs grow.
-#
-# Values are estimates. Actual weights depend on preparation,
-# packing, and the particular ingredient.
+def grams_per_cup_for(ingredient_name):
+    """Find a known cup-to-gram conversion for an ingredient."""
 
-GRAMS_PER_CUP = {
-    "all purpose flour": 120,
-    "bread flour": 127,
-    "whole wheat flour": 120,
-    "granulated sugar": 200,
-    "brown sugar": 220,
-    "powdered sugar": 120,
-    "butter": 227,
-    "unsalted butter": 227,
-    "olive oil": 216,
-    "vegetable oil": 218,
-    "honey": 340,
-    "water": 240,
-    "milk": 245,
-    "rolled oats": 90,
-    "cooked rice": 158,
-    "white rice cooked": 158,
-}
+    words = tokenize(ingredient_name)
+    normalized_name = normalize_text(ingredient_name)
 
-# Approximate weights for common individual items.
-# These should be refined using your USDA data and recipe needs.
-GRAMS_PER_ITEM = {
-    "egg": 50,
-    "large egg": 50,
-    "medium egg": 44,
-    "small egg": 38,
-    "garlic clove": 3,
-    "clove garlic": 3,
-}
+    # Prefer the most specific matching name.
+    for name in sorted(GRAMS_PER_CUP, key=len, reverse=True):
+        if name in normalized_name:
+            return GRAMS_PER_CUP[name]
 
-
-def get_conversion_key(ingredient_name):
-    """Create a normalized phrase for conversion lookups."""
-
-    return normalize_text(ingredient_name)
-
-
-def lookup_conversion_value(name, conversion_table):
-    """Find a conversion entry contained in the ingredient name."""
-
-    normalized = get_conversion_key(name)
-
-    # Prefer the longest matching key to avoid choosing a generic
-    # entry when a more specific entry is available.
-    keys = sorted(
-        conversion_table.keys(),
-        key=len,
-        reverse=True
-    )
-
-    for key in keys:
-        if key in normalized:
-            return conversion_table[key]
+    # Fall back to a keyword match for simple ingredient names.
+    for name, grams in GRAMS_PER_CUP.items():
+        if tokenize(name) == words:
+            return grams
 
     return None
 
 
-def convert_to_grams(ingredient, food=None):
+def grams_per_item_for(ingredient_name):
+    """Find a known weight for one item of an ingredient."""
+
+    normalized_name = normalize_text(ingredient_name)
+
+    for name in sorted(GRAMS_PER_ITEM, key=len, reverse=True):
+        if name in normalized_name:
+            return GRAMS_PER_ITEM[name]
+
+    return None
+
+
+def convert_to_grams(quantity, unit, ingredient_name=""):
     """
-    Convert an ingredient quantity to grams.
+    Convert a quantity to grams when a reliable conversion is known.
 
-    Supports:
-        Weight: g, kg, mg, oz, lb
-        Volume: ml, tsp, tbsp, cup(s), with known density
-        Count: selected items using estimated weights
-
-    Returns None when a reliable conversion is unavailable.
+    Returns None for unsupported units or unknown volume densities.
     """
-
-    quantity = ingredient.get("quantity")
-    unit = ingredient.get("unit")
-
-    if quantity is None or unit is None:
-        return None
 
     try:
         quantity = float(quantity)
-    except (ValueError, TypeError):
+    except (TypeError, ValueError):
         return None
 
     if quantity < 0:
         return None
 
-    unit = str(unit).strip().lower()
+    unit = normalize_text(unit)
 
-    # Normalize common unit spellings.
     unit_aliases = {
-        "grams": "g",
         "gram": "g",
-        "kilograms": "kg",
+        "grams": "g",
         "kilogram": "kg",
-        "milligrams": "mg",
+        "kilograms": "kg",
         "milligram": "mg",
-        "ounces": "oz",
-        "ounce": "oz",
-        "pounds": "lb",
-        "pound": "lb",
-        "lbs": "lb",
+        "milligrams": "mg",
         "teaspoon": "tsp",
         "teaspoons": "tsp",
         "tablespoon": "tbsp",
@@ -417,260 +472,195 @@ def convert_to_grams(ingredient, food=None):
         "cups": "cup",
         "milliliter": "ml",
         "milliliters": "ml",
+        "liters": "l",
+        "liter": "l",
+        "ounce": "oz",
+        "ounces": "oz",
+        "pound": "lb",
+        "pounds": "lb",
     }
 
     unit = unit_aliases.get(unit, unit)
 
     # Direct weight conversions.
-    weight_factors = {
-        "g": 1,
-        "kg": 1000,
-        "mg": 0.001,
-        "oz": 28.3495,
-        "lb": 453.592,
-    }
+    if unit in GRAMS_PER_UNIT:
+        return quantity * GRAMS_PER_UNIT[unit]
 
-    if unit in weight_factors:
-        return quantity * weight_factors[unit]
+    if unit == "oz":
+        return quantity * 28.349523125
 
-    # Use the matched USDA description when available.
-    food_description = (
-        food["description"]
-        if food is not None
-        else ""
-    )
+    if unit == "lb":
+        return quantity * 453.59237
 
-    ingredient_name = ingredient.get("name", "")
-    combined_name = f"{ingredient_name} {food_description}"
-
-    grams_per_cup = lookup_conversion_value(
-        combined_name,
-        GRAMS_PER_CUP
-    )
-
-    # Volume conversions require ingredient-specific density.
-    if unit in {"cup", "tbsp", "tsp", "ml"}:
+    # Volume conversions.
+    if unit in {"cup", "tbsp", "tsp", "ml", "l"}:
+        grams_per_cup = grams_per_cup_for(ingredient_name)
 
         if grams_per_cup is None:
             return None
 
-        volume_factors = {
-            "cup": 1,
-            "tbsp": 1 / 16,
-            "tsp": 1 / 48,
-            "ml": 1 / 240,
-        }
+        if unit == "cup":
+            return quantity * grams_per_cup
 
-        return (
-            quantity
-            * volume_factors[unit]
-            * grams_per_cup
-        )
+        if unit == "tbsp":
+            return quantity * grams_per_cup / 16.0
+
+        if unit == "tsp":
+            return quantity * grams_per_cup / 48.0
+
+        if unit == "ml":
+            return quantity * grams_per_cup / 240.0
+
+        if unit == "l":
+            return quantity * grams_per_cup * 1000.0 / 240.0
 
     # Count-based conversions.
     if unit in {
-        "piece", "pieces", "item", "items",
-        "egg", "eggs", "clove", "cloves"
+        "item", "items", "piece", "pieces",
+        "whole", "egg", "eggs",
     }:
-
-        grams_per_item = lookup_conversion_value(
-            combined_name,
-            GRAMS_PER_ITEM
-        )
+        grams_per_item = grams_per_item_for(ingredient_name)
 
         if grams_per_item is None:
             return None
 
         return quantity * grams_per_item
 
-    # Serving sizes, scoops, slices, and size descriptors need
-    # additional information to determine their weight.
+    # Do not silently guess weights for servings, slices, scoops, etc.
     return None
 
 
 # =========================================================
-# 6. CALCULATE RECIPE MACROS
+# 6. RECIPE MACRO CALCULATION
 # =========================================================
 
-def calculate_recipe_macros(recipe, foods_df=None):
+def calculate_recipe_macros(recipe, foods=None):
     """
-    Calculate total nutrition for a recipe.
+    Calculate recipe macros from ingredient dictionaries.
 
-    USDA nutrient values are assumed to be per 100 g.
+    Each ingredient should look like:
+        {
+            "name": "unsalted butter",
+            "quantity": 2,
+            "unit": "tbsp"
+        }
 
     Returns:
-        totals
-        ingredient_results
+        totals, ingredient_results
+
+    Nutrient values are assumed to be per 100 grams in the USDA CSV.
     """
 
-    if foods_df is None:
-        foods_df = foods
+    if foods is None:
+        foods = load_foods()
 
     totals = {nutrient: 0.0 for nutrient in NUTRIENTS}
     ingredient_results = []
 
-    for ingredient in recipe.get("ingredients", []):
-
+    for ingredient in recipe:
         name = ingredient.get("name", "")
         quantity = ingredient.get("quantity")
-        unit = ingredient.get("unit")
+        unit = ingredient.get("unit", "")
 
-        # Match first so the matched food can help with
-        # ingredient-specific volume or count conversions.
-        food, score = find_best_food(name, foods_df)
-
-        if food is None:
-
-            ingredient_results.append({
-                "ingredient": name,
-                "quantity": quantity,
-                "unit": unit,
-                "amount_g": None,
-                "fdc_id": None,
-                "matched_food": None,
-                "match_score": score,
-                "confidence": confidence_label(score),
-                "status": "no_food_match",
-            })
-
-            continue
-
-        # Convert the quantity using the ingredient and match.
-        amount_g = convert_to_grams(ingredient, food)
-
-        if amount_g is None:
-
-            ingredient_results.append({
-                "ingredient": name,
-                "quantity": quantity,
-                "unit": unit,
-                "amount_g": None,
-                "fdc_id": food["fdc_id"],
-                "matched_food": food["description"],
-                "match_score": score,
-                "confidence": confidence_label(score),
-                "status": "needs_conversion",
-            })
-
-            continue
-
-        # A low-confidence match should not silently affect totals.
-        if score < MEDIUM_CONFIDENCE_SCORE:
-
-            ingredient_results.append({
-                "ingredient": name,
-                "quantity": quantity,
-                "unit": unit,
-                "amount_g": amount_g,
-                "fdc_id": food["fdc_id"],
-                "matched_food": food["description"],
-                "match_score": score,
-                "confidence": confidence_label(score),
-                "status": "needs_match_review",
-            })
-
-            continue
-
-        # USDA values are per 100 g.
-        multiplier = amount_g / 100
-
-        for nutrient in NUTRIENTS:
-
-            # Missing nutrient columns are treated as unavailable,
-            # not as evidence that the food contains zero nutrients.
-            if nutrient not in foods_df.columns:
-                continue
-
-            value = food[nutrient]
-
-            if pd.isna(value):
-                continue
-
-            totals[nutrient] += float(value) * multiplier
-
-        ingredient_results.append({
+        result = {
             "ingredient": name,
             "quantity": quantity,
             "unit": unit,
-            "amount_g": amount_g,
-            "fdc_id": food["fdc_id"],
-            "matched_food": food["description"],
-            "match_score": score,
-            "confidence": confidence_label(score),
-            "status": "matched",
-        })
+            "grams": None,
+            "matched_food": None,
+            "match_score": None,
+            "confidence": "Very low",
+            "status": "",
+            "nutrients": {},
+        }
+
+        if not name:
+            result["status"] = "Skipped: missing ingredient name"
+            ingredient_results.append(result)
+            continue
+
+        grams = convert_to_grams(quantity, unit, name)
+
+        if grams is None:
+            result["status"] = (
+                "Skipped: unsupported unit or unknown conversion"
+            )
+            ingredient_results.append(result)
+            continue
+
+        result["grams"] = grams
+
+        match = find_best_food(name, foods)
+
+        if match is None:
+            result["status"] = "Skipped: no suitable match found"
+            ingredient_results.append(result)
+            continue
+
+        score = match["score"]
+        result["matched_food"] = match["description"]
+        result["match_score"] = score
+        result["confidence"] = confidence_label(score)
+
+        # Low-confidence matches are reported but not included in totals.
+        if score < MEDIUM_CONFIDENCE_SCORE:
+            result["status"] = (
+                "Skipped: match confidence is too low for calculation"
+            )
+            ingredient_results.append(result)
+            continue
+
+        ingredient_nutrients = {}
+
+        for nutrient in NUTRIENTS:
+            value_per_100g = match["nutrients"].get(nutrient, 0.0)
+            amount = value_per_100g * grams / 100.0
+
+            ingredient_nutrients[nutrient] = amount
+            totals[nutrient] += amount
+
+        result["nutrients"] = ingredient_nutrients
+        result["status"] = "Included"
+        ingredient_results.append(result)
 
     return totals, ingredient_results
 
 
 # =========================================================
-# 7. OPTIONAL DEBUGGING HELPER
-# =========================================================
-
-def print_top_matches(ingredient_name, foods_df=None, top_n=5):
-    """Print candidate matches to help evaluate the matcher."""
-
-    candidates = find_top_matches(
-        ingredient_name,
-        foods_df=foods_df,
-        top_n=top_n
-    )
-
-    print(f"\nIngredient: {ingredient_name}")
-
-    if not candidates:
-        print("No candidates found.")
-        return
-
-    for rank, candidate in enumerate(candidates, start=1):
-        print(
-            f"{rank}. {candidate['description']} "
-            f"| Score: {candidate['score']:.3f} "
-            f"| Matched: {candidate['matched_words']}"
-        )
-
-
-# =========================================================
-# 8. EXAMPLE USAGE
+# 7. EXAMPLE USAGE
 # =========================================================
 
 if __name__ == "__main__":
+    foods = load_foods()
 
-    # Inspect candidates before trusting a match.
-    print_top_matches("unsalted butter")
-    print_top_matches("extra virgin olive oil")
-    print_top_matches("chopped onion")
+    # Inspect the matcher.
+    print_top_matches("egg", top_n=10, foods=foods)
+    print_top_matches("onion", top_n=10, foods=foods)
+    print_top_matches("unsalted butter", top_n=10, foods=foods)
 
-    example_recipe = {
-        "ingredients": [
-            {
-                "name": "unsalted butter",
-                "quantity": 2,
-                "unit": "tbsp"
-            },
-            {
-                "name": "all purpose flour",
-                "quantity": 1,
-                "unit": "cup"
-            },
-            {
-                "name": "egg",
-                "quantity": 2,
-                "unit": "eggs"
-            }
-        ]
-    }
+    # Example recipe.
+    recipe = [
+        {"name": "unsalted butter", "quantity": 2, "unit": "tbsp"},
+        {"name": "all purpose flour", "quantity": 1, "unit": "cup"},
+        {"name": "egg", "quantity": 2, "unit": "item"},
+    ]
 
     totals, ingredient_results = calculate_recipe_macros(
-        example_recipe
+        recipe,
+        foods,
     )
 
-    print("\nRecipe totals:")
-
-    for nutrient, value in totals.items():
-        print(f"{nutrient}: {value:.2f}")
-
-    print("\nIngredient results:")
+    print("\nRecipe ingredient results:")
 
     for result in ingredient_results:
-        print(result)
+        print(
+            f"\n{result['ingredient']}: {result['status']}"
+        )
+        print(f"  Matched food: {result['matched_food']}")
+        print(f"  Confidence: {result['confidence']}")
+        print(f"  Weight in grams: {result['grams']}")
+
+    print("\nRecipe macro totals:")
+
+    for nutrient, amount in totals.items():
+        print(f"{nutrient}: {amount:.2f}")
