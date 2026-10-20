@@ -624,6 +624,28 @@ def calculate_recipe_macros(recipe, foods=None):
 
     return totals, ingredient_results
 
+#Function to connect to the nutrition engine and send fdc_ids to calculator
+def get_recipe_fdc_ids(recipe, foods=None):
+    """Return a list of USDA FDC IDs for ingredients in a recipe."""
+
+    if foods is None:
+        foods = load_foods()
+
+    fdc_ids = []
+
+    for ingredient in recipe:
+        name = ingredient.get("name", "")
+
+        if not name:
+            continue
+
+        match = find_best_food(name, foods)
+
+        if match is not None:
+            fdc_ids.append(match["fdc_id"])
+
+    return fdc_ids
+
 
 # =========================================================
 # 7. EXAMPLE USAGE
