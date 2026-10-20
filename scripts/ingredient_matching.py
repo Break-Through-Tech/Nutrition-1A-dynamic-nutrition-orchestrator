@@ -305,7 +305,6 @@ def score_candidate(ingredient_words, food_words, description=""):
     return max(0.0, min(score, 1.0))
 
 
-
 def find_top_matches(ingredient_name, foods, top_n=10):
     """Return the highest-scoring USDA candidates for an ingredient."""
 

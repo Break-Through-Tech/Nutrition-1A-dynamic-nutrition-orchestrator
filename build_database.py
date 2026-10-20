@@ -196,7 +196,7 @@ def export(path="seed_db.json"):
 
 # Optional helper to dump raw PDF text so you can copy lines into add_recipe(...)
 def dump_pdf_text(pdf_path):
-    import pdfplumber  # pip install pdfplumber
+    import pdfplumber  
     with pdfplumber.open(pdf_path) as pdf:
         return "\n".join(p.extract_text() or "" for p in pdf.pages)
 
