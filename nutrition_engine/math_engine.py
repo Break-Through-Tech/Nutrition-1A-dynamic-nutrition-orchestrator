@@ -18,11 +18,23 @@ NUTRIENTS = (
 CORE_NUTRIENTS = ("calories_kcal", "protein_g", "fat_g", "carbs_g")
 PROVENANCE_FIELDS = (
     "description", "amount_source", "match_score", "estimated",
-    "source", "notes", "reason",
+    "source", "notes", "reason", "resolution_status", "quantity", "unit", "quantity_text",
 )
 
 
 def _valid_nonnegative_number(value: Any, field_name: str) -> float:
+    """Validate a numeric input and return it as a float.
+
+    Args:
+        value: The value supplied by the caller.
+        field_name: Name used in a readable validation error.
+
+    Returns:
+        A finite number greater than or equal to zero.
+
+    Raises:
+        ValueError: If the value is missing, Boolean, negative, or non-finite.
+    """
     if isinstance(value, bool):
         raise ValueError(f"{field_name} must be a finite non-negative number")
     try:
@@ -35,6 +47,15 @@ def _valid_nonnegative_number(value: Any, field_name: str) -> float:
 
 
 def _nutrient_values(per_100g: Mapping[str, Any], grams: float) -> tuple[dict[str, float | None], list[str]]:
+    """Scale a per-100-g profile and keep unavailable nutrients unknown.
+
+    Args:
+        per_100g: Nutrient values for 100 g of the selected food.
+        grams: Amount of that food used in the recipe.
+
+    Returns:
+        A nutrient-value dictionary and a list of nutrients that were missing.
+    """
     values: dict[str, float | None] = {}
     missing: list[str] = []
     for nutrient in NUTRIENTS:
@@ -62,7 +83,19 @@ def calculate_ingredient(
     amount_g: float,
     nutrients_per_100g: Mapping[str, Any],
 ) -> dict[str, Any]:
-    """Calculate nutrient contributions for a resolved food and gram quantity."""
+    """Calculate nutrient contributions for a resolved food and gram quantity.
+
+    Args:
+        fdc_id: USDA FoodData Central ID for the selected food.
+        amount_g: Recipe amount in grams.
+        nutrients_per_100g: Nutrient profile for 100 g of the same food/preparation.
+
+    Returns:
+        Food ID, gram amount, scaled nutrients, status, and missing nutrient names.
+
+    Raises:
+        ValueError: If the gram amount is not a finite non-negative number.
+    """
     grams = _valid_nonnegative_number(amount_g, "amount_g")
     values, missing = _nutrient_values(nutrients_per_100g, grams)
     return {
@@ -75,11 +108,24 @@ def calculate_ingredient(
 
 
 def _unknown_totals() -> dict[str, float | None]:
+    """Build a fresh all-unknown nutrient dictionary for unresolved foods."""
     return {nutrient: None for nutrient in NUTRIENTS}
 
 
 def calculate_recipe(ingredients: Sequence[Mapping[str, Any]], servings: float = 1) -> dict[str, Any]:
     """Calculate recipe batch and per-serving totals from normalized ingredients.
+
+    Args:
+        ingredients: Sequence of ingredient dictionaries with status, gram amount,
+            USDA ID, and per-100-g nutrient profile where available.
+        servings: Number of servings in the full recipe batch; must be positive.
+
+    Returns:
+        Ingredient-level results, batch/per-serving totals, known partial totals,
+        completeness status, and coverage information.
+
+    Raises:
+        ValueError: If servings or an ingredient input is invalid.
 
     Supported ingredient statuses:
     - ``resolved`` (default): needs fdc_id, amount_g, and nutrients_per_100g.
@@ -231,7 +277,20 @@ def calculate_recipe(ingredients: Sequence[Mapping[str, Any]], servings: float =
 
 
 def calculate_meal(recipe_result: Mapping[str, Any], servings_eaten: float = 1.0) -> dict[str, Any]:
-    """Scale a recipe's per-serving totals by the number of servings eaten."""
+    """Scale a recipe's per-serving totals by the number of servings eaten.
+
+    Args:
+        recipe_result: Result returned by :func:`calculate_recipe`.
+        servings_eaten: Number of servings eaten; must be greater than zero.
+
+    Returns:
+        The eaten portion's totals and known partial contributions; unknown totals
+        remain unknown rather than being converted to zero.
+
+    Raises:
+        ValueError: If the serving amount is invalid or the recipe result is missing
+            its per-serving totals.
+    """
     amount = _valid_nonnegative_number(servings_eaten, "servings_eaten")
     if amount <= 0:
         raise ValueError("servings_eaten must be greater than zero")
@@ -252,11 +311,17 @@ def calculate_meal(recipe_result: Mapping[str, Any], servings_eaten: float = 1.0
 
 
 def aggregate_results(results: Sequence[Mapping[str, Any]], totals_key: str = "per_serving_totals") -> dict[str, Any]:
-    """Aggregate results; defaults to per-serving totals to avoid summing batches.
+    """Aggregate results without hiding unknown contributions.
 
-    Pass ``totals_key="totals"`` to aggregate meal results from calculate_meal,
-    or ``totals_key="batch_totals"`` deliberately when batch totals are intended.
-    Empty input is incomplete, never a verified zero-intake result.
+    Args:
+        results: Recipe or meal results to add together.
+        totals_key: Field to sum. Defaults to per-serving totals; use ``totals``
+            for results from :func:`calculate_meal`, or ``batch_totals`` only
+            when adding whole batches is intentional.
+
+    Returns:
+        Combined nutrient totals, partial totals, component count, and status.
+        Empty input is incomplete, never a verified zero-intake result.
     """
     if not results:
         return {"totals": _unknown_totals(), "known_partial_totals": {n: 0.0 for n in NUTRIENTS}, "complete": False, "core_complete": False, "status": "incomplete", "component_count": 0}

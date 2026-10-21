@@ -1,51 +1,52 @@
-# Deterministic nutrition math engine (initial isolated contribution)
+# Deterministic nutrition math engine and data prototype
 
-This is the arithmetic/aggregation layer only. It does **not** match recipe ingredients to USDA records or convert household measures to grams. Those responsibilities belong in the matching/normalization layer.
+This module now connects the initial deterministic calculator to the repository's cleaned USDA nutrient CSV and `recipes.json`. It is a **working prototype**, not yet a fully verified nutrition planner: estimates and unresolved ingredients are reported rather than silently treated as exact.
 
-## Contract
-
-- `calculate_ingredient(fdc_id, amount_g, nutrients_per_100g)` calculates nutrients for a resolved record. Nutrients are assumed to be per 100 g and must match the ingredient's preparation state.
-- `calculate_recipe(ingredients, servings=1)` returns batch totals and per-serving totals. Each resolved ingredient needs `fdc_id`, `amount_g`, and `nutrients_per_100g`.
-- Ingredient `status` may be `resolved` (default), `estimated`, `negligible_excluded`, or `unresolved`. Estimated and excluded entries are explicitly surfaced and prevent a recipe from being labeled fully verified. A `negligible_excluded` entry must include a documented `reason`; it is a deliberate policy exclusion, not a missing value treated as zero.
-- Unresolved entries always block verified totals in this initial version. Do not silently exempt an unresolved ingredient from verification; any future nutrient-specific exception should be backed by a documented upstream rule and tests.
-- `calculate_meal(recipe_result, servings_eaten=1)` scales **per-serving** totals by the quantity actually eaten.
-- `aggregate_results(results)` defaults to `per_serving_totals`, to reduce the risk of summing full recipe batches as daily intake. Pass `totals_key="batch_totals"` only when batch totals are intentional, or `totals_key="totals"` for results from `calculate_meal`.
-
-## Missing data and interpretation
-
-Missing, blank, NaN, infinite, or invalid nutrient values become `None`, never zero. `batch_totals` and `per_serving_totals` contain verified totals where possible; an unresolved ingredient makes those totals unknown. `known_partial_totals` and `known_partial_per_serving_totals` separately expose sums of contributions that could be calculated. These are **not verified totals**; they can be interpreted as lower bounds only when all included contributions are non-negative and no excluded/estimated assumptions distort the interpretation.
-
-`CORE_NUTRIENTS` contains calories, protein, fat, and carbohydrates. `core_complete` says whether verified values are available for these nutrients; it does not mean the whole recipe is fully verified. `complete` is stricter and requires all listed nutrients plus no estimates or documented exclusions. This lets a missing calcium value leave a known protein total usable without claiming every nutrient is complete.
-
-The engine preserves common provenance fields when provided: `description`, `amount_source`, `match_score`, `estimated`, `source`, `notes`, and `reason`. It normalizes `fdc_id` to a string to avoid integer/string lookup mismatches. A path-independent CSV loader is intentionally not included yet; agree on the authoritative dataset path and column schema before adding one.
-
-## Example
-
-```python
-from nutrition_engine import calculate_recipe, calculate_meal
-
-recipe = calculate_recipe(
-    [{
-        "name": "example food", "fdc_id": 123, "amount_g": 150,
-        "nutrients_per_100g": {
-            "calories_kcal": 120, "protein_g": 10, "fat_g": 3,
-            "carbs_g": 15, "fiber_g": 2, "sugars_g": 1,
-            "sodium_mg": 50, "potassium_mg": 200,
-            "calcium_mg": 30, "iron_mg": 1,
-        },
-    }],
-    servings=3,
-)
-meal = calculate_meal(recipe, servings_eaten=1.5)
-print(meal["totals"]["protein_g"])  # 7.5 g
-```
-
-## Tests
+## Run it
 
 From the repository root:
 
 ```bash
+python3 -m pip install -r requirements.txt
 python3 -m unittest discover -s tests -v
+python3 -m nutrition_engine.prototype --output /tmp/nutrition-prototype-report.json --review-csv /tmp/nutrition-ingredient-review.csv
 ```
 
-This is an isolated first contribution. It is not wired into `scripts/ingredient_matching.py`, the actual recipe data, or the planner. Integration should follow agreement on the shared data contract and authoritative recipe source.
+The command prints a summary for all recipes and can write a detailed JSON report plus a review CSV of estimated/unresolved ingredients. The JSON report contains recipe-level totals, per-serving totals, known partial contributions, ingredient match IDs/descriptions, quantity conversion sources, confidence/assumption notes, and unresolved reasons; the CSV is a convenient human-review queue.
+
+## Data flow
+
+1. Read `recipes.json`.
+2. Match each ingredient to a USDA `fdc_id` using the existing matcher plus explicit, reviewable project-specific overrides.
+3. Convert supported ingredient quantities to grams. Prefer an unambiguous food-specific row from `cleanedData/food_portion_clean.csv` when the food ID and unit are available; otherwise use the existing ingredient-specific converter or a clearly flagged prototype assumption.
+4. Load nutrient values per 100 g from `cleanedData/clean_usda_foods.csv` by normalized string `fdc_id`.
+5. Call `calculate_recipe` to calculate batch/per-serving totals and completeness/coverage statuses.
+
+The `measure_unit_clean.csv` aliases are loaded for unit normalization. The portion table contains 4,394 rows but only 82 food IDs overlap with the current 13,615-record nutrient CSV, so it cannot provide conversions for most current foods; missing conversions are not fabricated.
+
+## Important correctness rules
+
+- Empty/missing nutrient values become `None`; measured zeros remain `0.0`.
+- A recipe ingredient is not silently dropped when its quantity or match is unresolved.
+- A match or household-measure conversion based on a proxy/assumption is marked `estimated` and prevents the recipe from being labeled fully verified.
+- Composite ingredients such as spice mixes and mixed vegetables remain unresolved when their proportions are unknown.
+- `known_partial_totals` are **not verified totals**. They include calculated contributions from available resolved/estimated ingredients and must be interpreted alongside the ingredient statuses.
+- Batch totals and per-serving totals remain separate; `calculate_meal` scales per-serving totals by servings eaten; `aggregate_results` defaults to per-serving values.
+
+## Known limitations / next integration tasks
+
+- `MATCH_OVERRIDES` in `prototype.py` are explicit prototype assumptions. Review them with the team and replace estimates with exact, preparation-state-matched records where possible.
+- Many recipe quantities are missing or described as “to taste”; the engine flags these instead of inventing amounts.
+- Some recipe ingredients are composites (e.g. quinoa/rice mix, ginger-garlic paste, spice blends) with no proportions. Those need normalized component-level recipe data.
+- Several USDA portion IDs do not align with the IDs in the cleaned nutrient file. Investigate dataset-version/source alignment before relying on portions more broadly.
+- The current prototype calculates each recipe. A real day/week result still requires the planner's selected meals and serving counts to be passed into `calculate_meal` / `aggregate_results`.
+
+## Standalone math API
+
+- `calculate_ingredient(fdc_id, amount_g, nutrients_per_100g)` calculates a resolved food contribution.
+- `calculate_recipe(ingredients, servings=1)` returns batch and per-serving totals, partial totals, completeness, and coverage.
+- `calculate_meal(recipe_result, servings_eaten=1)` calculates an eaten portion from per-serving totals.
+- `aggregate_results(results, totals_key="per_serving_totals")` aggregates meals/recipes without accidentally summing full batches.
+
+Run the unit and integration tests with `python3 -m unittest discover -s tests -v`.
+For a tour of the test files and what each group covers, see [`tests/README.md`](../tests/README.md).
