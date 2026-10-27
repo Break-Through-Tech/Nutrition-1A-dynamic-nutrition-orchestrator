@@ -9,7 +9,7 @@ An AI-powered nutrition workflow that transforms recipes and ingredient quantiti
 | Name | GitHub Handle | Contributions |
 |---|---|---|
 | Prisha Goyal | [@PGoyal224](https://github.com/PGoyal224) | Data exploration, preprocessing, ingredient keyword matching |
-| Asha Thomas | [@jramirez](https://github.com/jramirez) | Data exploration, preprocessing, ingredient seed database development |
+| Asha Thomas | [@asha828](https://github.com/asha828) | Data exploration, preprocessing, ingredient seed database development |
 | Trang Hoang | [@aminahassan](https://github.com/aminahassan) | Data exploration, preprocessing, orchestrator agent development |
 | Chandana Robba | [@pmehta](https://github.com/pmehta) | Data exploration, macro calculator development and tuning |
 
