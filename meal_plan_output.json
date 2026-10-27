@@ -1,0 +1,276 @@
+{
+  "requirements": {
+    "protein_g_per_day": 140.0,
+    "calories_strictly_below_per_day": 2000.0,
+    "diet": "vegetarian"
+  },
+  "eligible_recipes": 26,
+  "excluded_recipes": [],
+  "planning_mode": "planning_only",
+  "days": [
+    {
+      "day": "Monday",
+      "meals": [
+        {
+          "meal_type": "breakfast",
+          "recipe_id": "protein-oats-upma",
+          "name": "Savory Protein Oats Upma",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "lunch",
+          "recipe_id": "soya-chunks-matar-curry",
+          "name": "Soya Chunks Matar Curry with Brown Rice",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "dinner",
+          "recipe_id": "paneer-bhurji-roti",
+          "name": "Paneer Bhurji with Whole Wheat Roti",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "snack",
+          "recipe_id": "roasted-chana-almonds",
+          "name": "Roasted Chana & Almonds",
+          "macros": null,
+          "nutrition_verified": false
+        }
+      ],
+      "totals": null,
+      "meets_protein": null,
+      "meets_calories": null,
+      "nutrition_verified": false
+    },
+    {
+      "day": "Tuesday",
+      "meals": [
+        {
+          "meal_type": "breakfast",
+          "recipe_id": "tofu-scramble-toast",
+          "name": "Tofu Scramble Toast",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "lunch",
+          "recipe_id": "soya-keema-masala-roti",
+          "name": "Soya Keema Masala with Roti",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "dinner",
+          "recipe_id": "dal-makhani-paneer",
+          "name": "High-Protein Dal Makhani & Paneer",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "snack",
+          "recipe_id": "spiced-edamame",
+          "name": "Spiced Edamame",
+          "macros": null,
+          "nutrition_verified": false
+        }
+      ],
+      "totals": null,
+      "meets_protein": null,
+      "meets_calories": null,
+      "nutrition_verified": false
+    },
+    {
+      "day": "Wednesday",
+      "meals": [
+        {
+          "meal_type": "breakfast",
+          "recipe_id": "moong-dal-cheela",
+          "name": "High-Protein Moong Dal Cheela",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "lunch",
+          "recipe_id": "kadhai-tofu-quinoa",
+          "name": "Kadhai Tofu with Quinoa",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "dinner",
+          "recipe_id": "spicy-paneer-bhurji-batch",
+          "name": "Spicy Paneer Bhurji (batch)",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "snack",
+          "recipe_id": "protein-shake",
+          "name": "Whey & Soy Milk Protein Shake",
+          "macros": null,
+          "nutrition_verified": false
+        }
+      ],
+      "totals": null,
+      "meets_protein": null,
+      "meets_calories": null,
+      "nutrition_verified": false
+    },
+    {
+      "day": "Thursday",
+      "meals": [
+        {
+          "meal_type": "breakfast",
+          "recipe_id": "modified-paneer-paratha",
+          "name": "Modified Paneer Paratha",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "lunch",
+          "recipe_id": "chickpea-chole-biryani",
+          "name": "Chickpea (Chole) Biryani",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "dinner",
+          "recipe_id": "mild-paneer-tikka-skewers",
+          "name": "Mild Paneer Tikka Skewers with Soft Paratha",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "snack",
+          "recipe_id": "roasted-soya-nuts",
+          "name": "Roasted Soya Nuts",
+          "macros": null,
+          "nutrition_verified": false
+        }
+      ],
+      "totals": null,
+      "meets_protein": null,
+      "meets_calories": null,
+      "nutrition_verified": false
+    },
+    {
+      "day": "Friday",
+      "meals": [
+        {
+          "meal_type": "breakfast",
+          "recipe_id": "protein-oats-upma",
+          "name": "Savory Protein Oats Upma",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "lunch",
+          "recipe_id": "soya-chunks-matar-curry",
+          "name": "Soya Chunks Matar Curry with Brown Rice",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "dinner",
+          "recipe_id": "kala-chana-sprouts-salad",
+          "name": "Kala Chana Chaat & Sprouted Moong Salad",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "snack",
+          "recipe_id": "roasted-chana-almonds",
+          "name": "Roasted Chana & Almonds",
+          "macros": null,
+          "nutrition_verified": false
+        }
+      ],
+      "totals": null,
+      "meets_protein": null,
+      "meets_calories": null,
+      "nutrition_verified": false
+    },
+    {
+      "day": "Saturday",
+      "meals": [
+        {
+          "meal_type": "breakfast",
+          "recipe_id": "tofu-scramble-toast",
+          "name": "Tofu Scramble Toast",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "lunch",
+          "recipe_id": "soya-keema-masala-roti",
+          "name": "Soya Keema Masala with Roti",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "dinner",
+          "recipe_id": "cheesy-moong-dal-quesadilla",
+          "name": "Cheesy Moong Dal Quesadillas",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "snack",
+          "recipe_id": "spiced-edamame",
+          "name": "Spiced Edamame",
+          "macros": null,
+          "nutrition_verified": false
+        }
+      ],
+      "totals": null,
+      "meets_protein": null,
+      "meets_calories": null,
+      "nutrition_verified": false
+    },
+    {
+      "day": "Sunday",
+      "meals": [
+        {
+          "meal_type": "breakfast",
+          "recipe_id": "moong-dal-cheela",
+          "name": "High-Protein Moong Dal Cheela",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "lunch",
+          "recipe_id": "kadhai-tofu-quinoa",
+          "name": "Kadhai Tofu with Quinoa",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "dinner",
+          "recipe_id": "dal-makhani-batch",
+          "name": "High-Protein Dal Makhani (batch)",
+          "macros": null,
+          "nutrition_verified": false
+        },
+        {
+          "meal_type": "snack",
+          "recipe_id": "protein-shake",
+          "name": "Whey & Soy Milk Protein Shake",
+          "macros": null,
+          "nutrition_verified": false
+        }
+      ],
+      "totals": null,
+      "meets_protein": null,
+      "meets_calories": null,
+      "nutrition_verified": false
+    }
+  ],
+  "weekly_totals": null,
+  "all_days_valid": false,
+  "nutrition_verified": false,
+  "repeat_rule_satisfied": true,
+  "note": "Planning-only schedule. Nutrition totals and target compliance have not been verified."
+}
