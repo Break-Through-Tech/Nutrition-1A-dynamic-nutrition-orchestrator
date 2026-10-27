@@ -1,8 +1,11 @@
-
 import re
 from pathlib import Path
 
 import pandas as pd
+import requests
+import os
+
+FDC_API_URL = "https://api.nal.usda.gov/fdc/v1"
 
 
 # =========================================================
@@ -229,11 +232,11 @@ def load_foods(path=FOODS_PATH):
 
     for nutrient in NUTRIENTS:
         if nutrient not in foods.columns:
-            foods[nutrient] = 0.0
+            foods[nutrient] = pd.NA
 
         foods[nutrient] = pd.to_numeric(
             foods[nutrient], errors="coerce"
-        ).fillna(0.0)
+        )
 
     foods["tokens"] = foods["description"].apply(tokenize)
 
@@ -305,51 +308,71 @@ def score_candidate(ingredient_words, food_words, description=""):
     return max(0.0, min(score, 1.0))
 
 
-def find_top_matches(ingredient_name, foods, top_n=10):
-    """Return the highest-scoring USDA candidates for an ingredient."""
+def rank_food_candidates(ingredient_name, candidates, top_n=10):
+    """Rank local-CSV or USDA API food records with the same scoring rules.
 
+    Candidate records must have a ``description`` field and either ``fdc_id``
+    or ``fdcId``. Nutrient values are optional. API search results typically
+    do not include a complete nutrient profile, so those values are filled in
+    after fetching the selected food's detail record.
+    """
     ingredient_words = tokenize(
         ingredient_name,
         remove_preparation=True,
     )
-
-    if not ingredient_words:
+    if not ingredient_words or top_n <= 0:
         return []
 
-    candidates = []
+    ranked = []
+    for food in candidates:
+        description = str(food.get("description") or "")
+        if not description:
+            continue
 
-    for _, food in foods.iterrows():
-        food_words = food["tokens"]
-        description = food["description"]
+        food_words = food.get("tokens")
+        if not isinstance(food_words, set):
+            food_words = tokenize(description)
 
-        score = score_candidate(
-            ingredient_words,
-            food_words,
-            description,
-        )
-
+        score = score_candidate(ingredient_words, food_words, description)
         if score <= 0:
             continue
 
-        matched_words = ingredient_words & food_words
+        raw_nutrients = food.get("nutrients") or {}
+        # Local CSV records store nutrients as top-level columns. API search
+        # records generally have no nutrient values at this stage.
+        nutrients = {}
+        for nutrient in NUTRIENTS:
+            value = raw_nutrients.get(nutrient, food.get(nutrient))
+            try:
+                nutrients[nutrient] = (
+                    float(value) if value is not None and pd.notna(value)
+                    else None
+                )
+            except (TypeError, ValueError):
+                nutrients[nutrient] = None
 
-        candidates.append({
-            "fdc_id": food["fdc_id"],
+        fdc_id = food.get("fdc_id", food.get("fdcId"))
+        ranked.append({
+            "fdc_id": fdc_id,
             "description": description,
             "score": score,
-            "matched_words": sorted(matched_words),
-            "nutrients": {
-                nutrient: float(food[nutrient])
-                for nutrient in NUTRIENTS
-            },
+            "matched_words": sorted(ingredient_words & food_words),
+            "nutrients": nutrients,
         })
 
-    candidates.sort(
-        key=lambda candidate: candidate["score"],
-        reverse=True,
-    )
+    ranked.sort(key=lambda candidate: candidate["score"], reverse=True)
+    return ranked[:top_n]
 
-    return candidates[:top_n]
+
+def find_top_matches(ingredient_name, foods, top_n=10):
+    """Return the highest-scoring foods in the local USDA CSV."""
+    if foods is None or foods.empty:
+        return []
+    return rank_food_candidates(
+        ingredient_name,
+        foods.to_dict(orient="records"),
+        top_n=top_n,
+    )
 
 
 def find_best_food(ingredient_name, foods):
@@ -611,10 +634,21 @@ def calculate_recipe_macros(recipe, foods=None):
 
         ingredient_nutrients = {}
 
-        for nutrient in NUTRIENTS:
-            value_per_100g = match["nutrients"].get(nutrient, 0.0)
-            amount = value_per_100g * grams / 100.0
+        missing_nutrients = [
+            nutrient for nutrient in NUTRIENTS
+            if match["nutrients"].get(nutrient) is None
+        ]
+        if missing_nutrients:
+            result["status"] = (
+                "Skipped: missing nutrient data for "
+                + ", ".join(missing_nutrients)
+            )
+            ingredient_results.append(result)
+            continue
 
+        for nutrient in NUTRIENTS:
+            value_per_100g = match["nutrients"][nutrient]
+            amount = value_per_100g * grams / 100.0
             ingredient_nutrients[nutrient] = amount
             totals[nutrient] += amount
 
@@ -639,13 +673,269 @@ def get_recipe_fdc_ids(recipe, foods=None):
         if not name:
             continue
 
-        match = find_best_food(name, foods)
+        match = find_best_food_with_api(name, foods)
 
         if match is not None:
             fdc_ids.append(match["fdc_id"])
 
     return fdc_ids
 
+
+def prepare_recipe_for_math_engine(
+    recipe,
+    foods=None,
+    aliases_by_id=None,
+):
+    """
+    Convert recipe ingredients into the input format expected
+    by math_engine.calculate_recipe().
+
+    Each input ingredient can contain:
+      - name, quantity, unit
+      - ingredient_id and qty_g
+      - aliases (optional)
+
+    Returns a list of calculator ingredient dictionaries.
+    """
+    if foods is None:
+        foods = load_foods()
+
+    prepared_ingredients = []
+
+    for ingredient in recipe:
+        name = ingredient.get("name") or ingredient.get("note", "")
+        aliases = ingredient.get("aliases", [])
+
+        # Try the primary name and then any known aliases.
+        search_names = [name] + aliases
+        best_match = None
+
+        for search_name in search_names:
+            if not search_name:
+                continue
+
+            match = find_best_food_with_api(search_name, foods)
+
+            if match is not None and (
+                best_match is None
+                or match["score"] > best_match["score"]
+            ):
+                best_match = match
+
+        # Prefer a precomputed gram amount when available.
+        amount_g = ingredient.get("qty_g")
+        if amount_g is None:
+            amount_g = ingredient.get("amount_g")
+
+        if amount_g is None:
+            amount_g = convert_to_grams(
+                ingredient.get("quantity", ingredient.get("qty")),
+                ingredient.get("unit", ""),
+                name,
+            )
+
+        # The calculator cannot calculate without a valid weight.
+        if amount_g is None:
+            prepared_ingredients.append({
+                "fdc_id": None,
+                "amount_g": None,
+                "nutrients_per_100g": {},
+                "status": "unresolved",
+                "reason": "Ingredient weight could not be determined",
+                "ingredient_name": name,
+            })
+            continue
+
+        amount_g = float(amount_g)
+
+        if amount_g < 0:
+            raise ValueError(
+                f"Negative ingredient weight for {name!r}"
+            )
+
+        # Do not invent a food match when no suitable candidate exists.
+        if best_match is None or best_match["score"] < MEDIUM_CONFIDENCE_SCORE:
+            prepared_ingredients.append({
+                "fdc_id": None,
+                "amount_g": amount_g,
+                "nutrients_per_100g": {},
+                "status": "unresolved",
+                "reason": "No sufficiently confident food match",
+                "ingredient_name": name,
+            })
+            continue
+
+        # Preserve missing nutrient values for the math engine.
+        nutrient_profile = best_match["nutrients"]
+
+        prepared_ingredients.append({
+            "fdc_id": best_match["fdc_id"],
+            "amount_g": amount_g,
+            "nutrients_per_100g": nutrient_profile,
+            "status": "resolved",
+            "ingredient_name": name,
+            "matched_food": best_match["description"],
+            "match_score": best_match["score"],
+        })
+
+    return prepared_ingredients
+
+
+def search_usda_api(ingredient_name, page_size=10):
+    """Search USDA FoodData Central for an ingredient."""
+    api_key = os.getenv("API_KEY")
+
+    if not api_key:
+        raise ValueError("Set the API_KEY environment variable.")
+
+    response = requests.post(
+        f"{FDC_API_URL}/foods/search",
+        params={"api_key": api_key},
+        json={
+            "query": ingredient_name,
+            "pageSize": page_size,
+            "dataType": [
+                "Foundation",
+                "SR Legacy",
+                "Survey (FNDDS)",
+            ],
+        },
+        timeout=15,
+    )
+
+    response.raise_for_status()
+    return response.json().get("foods", [])
+
+
+def get_usda_food_details(fdc_id):
+    """Fetch the full nutrient profile for one USDA food."""
+    api_key = os.getenv("API_KEY")
+
+    if not api_key:
+        raise ValueError("Set the API_KEY environment variable.")
+
+    response = requests.get(
+        f"{FDC_API_URL}/food/{fdc_id}",
+        params={"api_key": api_key},
+        timeout=15,
+    )
+
+    response.raise_for_status()
+    return response.json()
+
+
+# USDA FoodData Central nutrient identifiers. Names are also checked because
+# the exact fields included can differ across Foundation, SR Legacy, and FNDDS.
+USDA_NUTRIENT_IDS = {
+    "calories_kcal": {1008, 2047, 2048},
+    "protein_g": {1003},
+    "fat_g": {1004},
+    "carbs_g": {1005},
+    "fiber_g": {1079},
+    "sugars_g": {2000},
+    "sodium_mg": {1093},
+    "potassium_mg": {1092},
+    "calcium_mg": {1087},
+    "iron_mg": {1089},
+}
+
+NUTRIENT_NAME_ALIASES = {
+    "calories_kcal": {"energy", "energy kcal", "metabolizable energy"},
+    "protein_g": {"protein"},
+    "fat_g": {"total lipid (fat)", "total lipid", "fat"},
+    "carbs_g": {"carbohydrate, by difference", "carbohydrate"},
+    "fiber_g": {"fiber, total dietary", "total dietary fiber", "dietary fiber"},
+    "sugars_g": {"sugars, total including nlea", "total sugars", "sugars, total"},
+    "sodium_mg": {"sodium, na", "sodium"},
+    "potassium_mg": {"potassium, k", "potassium"},
+    "calcium_mg": {"calcium, ca", "calcium"},
+    "iron_mg": {"iron, fe", "iron"},
+}
+
+
+def nutrients_from_usda_details(details):
+    """Normalize a USDA food-detail response to the project's nutrient keys.
+
+    Values are per 100 g when returned by FoodData Central. Missing nutrients
+    remain None so the math engine can mark the calculation incomplete.
+    """
+    result = {nutrient: None for nutrient in NUTRIENTS}
+    candidates = {nutrient: [] for nutrient in NUTRIENTS}
+
+    for item in details.get("foodNutrients", []):
+        nutrient_info = item.get("nutrient") or {}
+        nutrient_id = item.get("nutrientId", nutrient_info.get("id"))
+        nutrient_name = str(
+            item.get("nutrientName", nutrient_info.get("name", ""))
+        ).strip().lower()
+        unit = str(item.get("unitName", nutrient_info.get("unitName", "")))
+        amount = item.get("amount", item.get("value"))
+        if amount is None:
+            continue
+        try:
+            amount = float(amount)
+        except (TypeError, ValueError):
+            continue
+
+        for target in NUTRIENTS:
+            try:
+                id_match = int(nutrient_id) in USDA_NUTRIENT_IDS[target]
+            except (TypeError, ValueError):
+                id_match = False
+            name_match = nutrient_name in NUTRIENT_NAME_ALIASES[target]
+            if not (id_match or name_match):
+                continue
+
+            # Avoid interpreting energy in kJ as kcal.
+            if target == "calories_kcal" and unit.lower() in {"kj", "kilojoule", "kilojoules"}:
+                continue
+            candidates[target].append((amount, unit.lower(), nutrient_id))
+
+    for target, values in candidates.items():
+        if not values:
+            continue
+        # Prefer energy reported in kcal. For other nutrients, FoodData Central
+        # reports the expected units for the selected IDs.
+        if target == "calories_kcal":
+            kcal_values = [v for v in values if v[1] in {"kcal", "calorie", "calories"}]
+            chosen = kcal_values[0] if kcal_values else values[0]
+        else:
+            chosen = values[0]
+        result[target] = chosen[0]
+
+    return result
+
+
+def find_best_food_with_api(ingredient_name, foods=None):
+    """Try the local CSV first, then search USDA when its match is weak.
+
+    The same ranker and score_candidate() are used for both data sources.
+    A match is accepted only at medium confidence or higher. If the API key is
+    missing, the request fails, or USDA returns no adequate candidate, None is
+    returned unless the local CSV already had an adequate match.
+    """
+    local_match = find_best_food(ingredient_name, foods) if foods is not None else None
+    if local_match and local_match["score"] >= MEDIUM_CONFIDENCE_SCORE:
+        return local_match
+
+    try:
+        api_candidates = search_usda_api(ingredient_name, page_size=10)
+    except (requests.RequestException, ValueError):
+        return local_match if local_match and local_match["score"] >= MEDIUM_CONFIDENCE_SCORE else None
+
+    ranked = rank_food_candidates(ingredient_name, api_candidates, top_n=10)
+    if not ranked or ranked[0]["score"] < MEDIUM_CONFIDENCE_SCORE:
+        return local_match if local_match and local_match["score"] >= MEDIUM_CONFIDENCE_SCORE else None
+
+    best_api_match = ranked[0]
+    try:
+        details = get_usda_food_details(best_api_match["fdc_id"])
+    except (requests.RequestException, ValueError):
+        return local_match if local_match and local_match["score"] >= MEDIUM_CONFIDENCE_SCORE else None
+
+    best_api_match["nutrients"] = nutrients_from_usda_details(details)
+    best_api_match["description"] = details.get("description") or best_api_match["description"]
+    return best_api_match
 
 # =========================================================
 # 7. EXAMPLE USAGE
