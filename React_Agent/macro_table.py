@@ -1,7 +1,7 @@
 from food_db import FoodDB
 from agent_tools import RecipeBank
-db = FoodDB.from_paths("cleanedData/clean_usda_foods.csv", "data/nutrient_overrides.json")
-bank = RecipeBank.from_file("data/recipes_normalized.json", db)
+db = FoodDB.from_paths("../cleanedData/clean_usda_foods.csv", "agent_data/nutrient_overrides.json")
+bank = RecipeBank.from_file("agent_data/recipes_normalized.json", db)
 rows = []
 for rid, r in bank.recipes.items():
     if r["usable"]:

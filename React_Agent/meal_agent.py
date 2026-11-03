@@ -125,20 +125,21 @@ _EXCL_STOP = {"at", "under", "over", "below", "with", "for", "but", "that", "per
 
 def parse_constraints_regex(text: str) -> dict:
     """Deterministic extraction of the constraints a user states explicitly."""
-    t, found = text.lower(), {}
+    t, found = re.sub(r"(?<=\d),(?=\d{3}\b)", "", text.lower()), {}
     m = re.search(r"(\d+)\s*-?\s*days?\b", t)
     if m:
         found["days"] = int(m.group(1))
     elif re.search(r"\bweek(?:ly)?\b", t):
         found["days"] = 7
-    elif re.search(r"\b(?:a|one|1|single)\s+day\b|\btoday\b|\btomorrow\b", t):
+    elif re.search(r"\b(?:a|one|1|single)\s+(?:[\w-]+\s+){0,2}day\b|\btoday\b|\btomorrow\b", t):
         found["days"] = 1
     m = (re.search(r"(\d+(?:\.\d+)?)\s*g(?:rams?)?\s*(?:of\s+)?protein", t)
          or re.search(r"protein[^0-9.]{0,30}(\d+(?:\.\d+)?)\s*g", t))
     if m:
         found["protein_g_min_per_day"] = float(m.group(1))
-    m = (re.search(r"(?:under|below|less than|fewer than|at most|up to|no more than|max(?:imum)?(?:\s+of)?|<=?)"
-                   r"\s*(\d{3,5})\s*k?cal(?:ories)?", t)
+    cap = r"(?:under|below|less than|fewer than|at most|up to|no more than|max(?:imum)?(?:\s+of)?|<=?|\u2264)"
+    m = (re.search(cap + r"\s*(\d{3,5})\s*k?cal(?:ories)?", t)
+         or re.search(r"calor(?:ies|ie)?(?:\s+(?:target|limit|cap))?\s*[:=]?\s*" + cap + r"\s*(\d{3,5})", t)
          or re.search(r"(\d{3,5})\s*k?cal(?:ories)?\s*(?:max|maximum|or less|or fewer|limit)", t))
     if m:
         found["calories_max_per_day"] = float(m.group(1))

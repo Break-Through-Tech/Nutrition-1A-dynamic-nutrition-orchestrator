@@ -1,6 +1,6 @@
 import json, pandas as pd
-df = pd.read_csv("cleanedData/clean_usda_foods.csv").set_index("fdc_id")
-data = json.load(open("data/recipes_normalized.json"))["recipes"]
+df = pd.read_csv("../cleanedData/clean_usda_foods.csv").set_index("fdc_id")
+data = json.load(open("agent_data/recipes_normalized.json"))["recipes"]
 seen = {}
 for r in data:
     for l in r["ingredients"]:
