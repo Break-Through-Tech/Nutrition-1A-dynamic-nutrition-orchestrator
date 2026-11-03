@@ -354,13 +354,20 @@ def rank_food_candidates(ingredient_name, candidates, top_n=10):
         fdc_id = food.get("fdc_id", food.get("fdcId"))
         ranked.append({
             "fdc_id": fdc_id,
+            "data_type": food.get("data_type", ""),
             "description": description,
             "score": score,
             "matched_words": sorted(ingredient_words & food_words),
             "nutrients": nutrients,
         })
 
-    ranked.sort(key=lambda candidate: candidate["score"], reverse=True)
+    ranked.sort(
+        key=lambda candidate: (
+            candidate["score"],
+            str(candidate.get("data_type", "")).strip().lower() == "sr legacy"
+        ),
+        reverse=True,
+    )
     return ranked[:top_n]
 
 
