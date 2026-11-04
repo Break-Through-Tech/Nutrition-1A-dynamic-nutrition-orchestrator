@@ -128,6 +128,9 @@ However, pgvector may be a stronger long-term architectural choice if the applic
 The primary consideration is whether the project needs a dedicated vector database or would benefit more from integrating semantic retrieval directly into its relational database.
 A final decision should be based on a small comparative experiment measuring retrieval accuracy, query performance, and implementation complexity.
 
+## 6. Our Decision
+
+We will proceed with pgvector because it is better for scalability, but will keep the ChromaDB approach open if time is too limited for pgvector implementation.
 ## References
 
 - ChromaDB Documentation: https://docs.trychroma.com/
