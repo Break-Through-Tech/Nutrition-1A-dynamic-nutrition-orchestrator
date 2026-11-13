@@ -3,7 +3,7 @@
 Prerequisites (once):
     pip install -U ollama pandas
     ollama pull qwen2.5:7b-instruct          # any tool-capable local model
-    python build_recipes.py --recipes data/recipes.json --foods path/to/clean_usda_foods.csv
+    python build_recipes.py --recipes agent_data/recipes.json --foods path/to/clean_usda_foods.csv
 
 Then:
     python run_agent.py "Plan 7 days of vegetarian meals with at least 120g of protein per day and under 2000 calories."
@@ -24,9 +24,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("request", help="the user's requirements, in plain English")
     ap.add_argument("--model", default="qwen2.5:7b-instruct")
-    ap.add_argument("--recipes", default="data/recipes_normalized.json")
+    ap.add_argument("--recipes", default="agent_data/recipes_normalized.json")
     ap.add_argument("--foods", default=None, help="USDA CSV (default: ingredient_matching.FOODS_PATH)")
-    ap.add_argument("--nutrient-overrides", default="data/nutrient_overrides.json")
+    ap.add_argument("--nutrient-overrides", default="agent_data/nutrient_overrides.json")
     ap.add_argument("--max-steps", type=int, default=12, help="tool-call budget per day")
     ap.add_argument("--no-llm-parse", action="store_true", help="parse requirements with regex only")
     ap.add_argument("--verbose", action="store_true", help="print every tool call as it happens")

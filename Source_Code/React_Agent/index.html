@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ReAct Meal Planner</title>
+    <style>
+        :root {
+            --bg: #faf8f5;
+            --fg: #1f2421;
+            --mut: #667068;
+            --card: #fff;
+            --line: #e4dfd6;
+            --acc: #2f7d5b;
+            --bad: #c0392b;
+            --code: #f1eee8
+        }
+
+        @media (prefers-color-scheme:dark) {
+            :root {
+                --bg: #171a18;
+                --fg: #ecefe9;
+                --mut: #9aa59d;
+                --card: #1f2421;
+                --line: #333a35;
+                --acc: #5cc59a;
+                --bad: #ff7b6b;
+                --code: #262c28;
+                color-scheme: dark
+            }
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--fg);
+            font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif
+        }
+
+        .wrap {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px 16px 56px
+        }
+
+        h1 {
+            font-size: 22px;
+            margin: 0 0 4px
+        }
+
+        h2 {
+            font-size: 15px;
+            margin: 0 0 8px
+        }
+
+        .mut {
+            color: var(--mut)
+        }
+
+        .small {
+            font-size: 13px
+        }
+
+        .bad {
+            color: var(--bad)
+        }
+
+        .good {
+            color: var(--acc)
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+            margin: 12px 0
+        }
+
+        textarea,
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 9px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--fg);
+            font: inherit
+        }
+
+        textarea {
+            min-height: 70px;
+            resize: vertical
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px
+        }
+
+        .btn {
+            border: 1px solid var(--line);
+            background: var(--card);
+            color: var(--fg);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font: inherit;
+            cursor: pointer
+        }
+
+        .btn.pri {
+            background: var(--acc);
+            border-color: var(--acc);
+            color: #fff
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: default
+        }
+
+        .chip {
+            font-size: 12px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 3px 10px;
+            cursor: pointer;
+            background: var(--card);
+            color: var(--fg)
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px
+        }
+
+        td,
+        th {
+            text-align: left;
+            padding: 5px 6px;
+            border-bottom: 1px solid var(--line)
+        }
+
+        th {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--mut)
+        }
+
+        .track {
+            height: 8px;
+            background: var(--code);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 3px 0 8px
+        }
+
+        .fill {
+            height: 100%;
+            background: var(--acc)
+        }
+
+        .fill.no {
+            background: var(--bad)
+        }
+
+        code {
+            display: block;
+            background: var(--code);
+            padding: 5px 8px;
+            border-radius: 6px;
+            font: 12.5px ui-monospace, Menlo, monospace;
+            overflow-x: auto;
+            white-space: pre
+        }
+
+        .step {
+            border-left: 3px solid var(--acc);
+            padding-left: 10px;
+            margin: 10px 0
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+    <script>
+        const h = React.createElement, { useState, useEffect } = React;
+        const SLOTS = ['breakfast', 'lunch', 'dinner', 'snack'];
+        const EXAMPLES = [
+            'Plan 1 day of vegetarian meals with at least 140g of protein and under 2000 calories.',
+            'Plan 7 days of vegetarian meals with at least 120g of protein per day and under 2000 calories.',
+            'Plan 3 days, breakfast lunch and dinner only, no tofu, at least 100g of protein.'
+        ];
+
+        function summarize(tool, o) {
+            if (!o) return '';
+            if (o.error) return '✗ ' + o.error;
+            if (tool === 'check_plan') return o.ok ? '✓ all constraints met' : '✗ ' + (o.violations || []).join('; ');
+            if (tool === 'set_meal') return o.ok ? '✓ set ' + (o.meal ? o.meal.name : '') : '✗ ' + (o.error || '');
+            if (tool === 'get_recipe_macros') return o.name + ': ' + o.protein_g + ' g protein, ' + o.calories_kcal + ' kcal';
+            if (tool === 'search_recipes') return o.count + ' candidates: ' + (o.recipes || []).map(r => r.name || r.recipe_id).join(', ');
+            const t = JSON.stringify(o); return t.length > 200 ? t.slice(0, 200) + '…' : t;
+        }
+
+        function Meter({ label, val, target, min, unit }) {
+            if (val == null || !target) return null;
+            const ok = min ? val >= target : val <= target;
+            return h('div', null,
+                h('div', { className: 'small' }, label + ': ', h('b', { className: ok ? 'good' : 'bad' }, val + ' ' + unit), h('span', { className: 'mut' }, (min ? ' (min ' : ' (max ') + target + ')')),
+                h('div', { className: 'track' }, h('div', { className: 'fill' + (ok ? '' : ' no'), style: { width: Math.min(100, val / target * 100) + '%' } })));
+        }
+
+        function Day({ d, c }) {
+            const meals = SLOTS.filter(s => d.meals[s]);
+            return h('div', { className: 'card' },
+                h('h2', null, 'Day ' + d.day + '  ', h('span', { className: d.constraints_met ? 'good' : 'bad' }, d.constraints_met ? '✓ constraints met' : '✗ not met')),
+                h('table', null, h('thead', null, h('tr', null, ['Meal', 'Recipe', 'Servings', 'Protein', 'Calories'].map(x => h('th', { key: x }, x)))),
+                    h('tbody', null, meals.map(s => { const m = d.meals[s]; return h('tr', { key: s }, h('td', null, s), h('td', null, m.name), h('td', null, '×' + m.servings), h('td', null, m.protein_g + ' g'), h('td', null, m.calories_kcal + ' kcal')); }))),
+                h('div', { style: { marginTop: 10 } },
+                    h(Meter, { label: 'Protein', val: d.totals.protein_g, target: c.protein_g_min_per_day, min: true, unit: 'g' }),
+                    h(Meter, { label: 'Calories', val: d.totals.calories_kcal, target: c.calories_max_per_day, min: false, unit: 'kcal' })),
+                d.violations.map((v, i) => h('div', { key: i, className: 'bad small' }, '✗ ' + v)));
+        }
+
+        function Trace({ trace }) {
+            return h('details', { className: 'card' }, h('summary', null, 'Agent trace (' + trace.length + ' steps): Reason → Act → Observe'),
+                trace.map((s, i) => h('div', { className: 'step', key: i },
+                    h('div', { className: 'small mut' }, 'Step ' + (i + 1) + ' · day ' + s.day),
+                    s.thought ? h('div', { className: 'small', style: { fontStyle: 'italic' } }, s.thought) : null,
+                    s.action ? h('code', null, s.action.tool + '(' + Object.entries(s.action.args || {}).map(([k, v]) => k + '=' + JSON.stringify(v)).join(', ') + ')') : h('div', { className: 'small mut' }, '(no tool call)'),
+                    s.action ? h('div', { className: 'small' }, summarize(s.action.tool, s.observation)) : null)));
+        }
+
+        function App() {
+            const [text, setText] = useState(EXAMPLES[0]), [model, setModel] = useState(''), [busy, setBusy] = useState(false);
+            const [res, setRes] = useState(null), [err, setErr] = useState(''), [health, setHealth] = useState(null);
+            useEffect(() => {
+                fetch('/api/health').then(r => r.json()).then(j => { setHealth(j); setModel(j.default_model); }).catch(() => setHealth({ offline: true }));
+            }, []);
+
+            async function run() {
+                setBusy(true); setErr(''); setRes(null);
+                try {
+                    const r = await fetch('/api/plan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request: text, model }) });
+                    const j = await r.json();
+                    if (!r.ok) throw new Error(j.error || 'Request failed');
+                    setRes(j);
+                } catch (e) { setErr(e.message); }
+                setBusy(false);
+            }
+            function download() {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([JSON.stringify(res.trace, null, 2)], { type: 'application/json' }));
+                a.download = 'trace.json'; a.click();
+            }
+
+            const status = !health ? 'Checking…' : health.offline ? '✗ Server not reachable' :
+                (health.ollama ? '✓ Ollama connected' : '✗ Ollama not running') + ' · ' + health.recipes_usable + '/' + health.recipes_total + ' recipes usable';
+            const w = res && res.weekly;
+            return h('main', { className: 'wrap' },
+                h('h1', null, 'ReAct meal planner'),
+                h('p', { className: 'mut small' }, 'A single ReAct agent (local Ollama model) plans meals from a fixed recipe bank. The model chooses tools; a deterministic tool does all the nutrition math.'),
+                h('div', { className: 'card' },
+                    h('div', { className: 'small mut' }, status),
+                    h('textarea', { value: text, onChange: e => setText(e.target.value), placeholder: 'Describe your requirements…' }),
+                    h('div', { className: 'row' }, EXAMPLES.map((x, i) => h('button', { key: i, className: 'chip', onClick: () => setText(x) }, 'Example ' + (i + 1)))),
+                    h('div', { className: 'row' },
+                        h('button', { className: 'btn pri', disabled: busy || !text.trim(), onClick: run }, busy ? 'Planning…' : 'Plan meals'),
+                        h('span', { className: 'small mut' }, 'Model'), h('input', { style: { width: 220 }, value: model, onChange: e => setModel(e.target.value) })),
+                    busy && h('p', { className: 'small mut' }, 'The agent is running. A 1-day plan on a small local model can take a minute or two; 7 days takes several times longer.'),
+                    err && h('p', { className: 'bad small' }, '✗ ' + err)),
+                res && [
+                    h('div', { className: 'card', key: 'sum' },
+                        h('h2', null, res.constraints_met ? '✓ All constraints met' : '✗ Some constraints not met'),
+                        h('div', { className: 'small' }, 'Targets: protein ≥ ' + (res.constraints.protein_g_min_per_day ?? 'none') + ' g/day, calories ≤ ' + (res.constraints.calories_max_per_day ?? 'none') + ' kcal/day, ' + res.constraints.days + ' day(s)'),
+                        w && w.avg_protein_g_per_day != null && h('div', { className: 'small' }, 'Average: ' + w.avg_protein_g_per_day + ' g protein, ' + w.avg_calories_per_day + ' kcal per day'),
+                        [...new Set(res.warnings)].map((x, i) => h('div', { key: i, className: 'small mut' }, '• ' + x))),
+                    res.days.map(d => h(Day, { key: d.day, d, c: res.constraints })),
+                    h(Trace, { key: 'trace', trace: res.trace }),
+                    h('button', { key: 'dl', className: 'btn', onClick: download }, 'Download trace.json')]);
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(h(App));
+    </script>
+</body>
+
+</html>
