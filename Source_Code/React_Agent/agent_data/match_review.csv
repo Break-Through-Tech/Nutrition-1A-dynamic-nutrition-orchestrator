@@ -1,0 +1,78 @@
+ingredient_id,query,rank,fdc_id,description,score,auto_accepted
+oats,oats,1,2708489,"Oats, Raw",0.93,True
+oats,oats,2,2346396,"Oats, Whole Grain, Rolled, Old Fashioned",0.93,False
+oats,oats,3,2346397,"Oats, Whole Grain, Steel Cut",0.93,False
+cooking_oil,oil vegetable soybean,1,172370,"Oil, Vegetable, Soybean, Refined",0.9,True
+cooking_oil,oil vegetable soybean,2,173588,"Margarine, Margarine-Type Vegetable Oil Spread, 70% Fat, Soybean And Partially Hydrogenated Soybean, Stick",0.6,False
+cooking_oil,oil vegetable soybean,3,171261,"Cream Substitute, Liquid, With Hydrogenated Vegetable Oil And Soy Protein",0.5,False
+moong_dal,mung beans,1,174256,"Mung Beans, Mature Seeds, Raw",0.93,True
+moong_dal,mung beans,2,169957,"Mung Beans, Mature Seeds, Sprouted, Raw",0.93,False
+moong_dal,mung beans,3,175255,"Mung Beans, Mature Seeds, Cooked, Boiled, With Salt",0.9,False
+paneer_low_fat,paneer,1,2705740,"Cheese, Paneer",0.9,True
+paneer_low_fat,paneer,2,2709631,Palak Paneer,0.9,False
+tofu,tofu firm,1,172475,"Tofu, Raw, Firm, Prepared With Calcium Sulfate",0.93,True
+tofu,tofu firm,2,173788,House Foods Premium Firm Tofu,0.9,False
+tofu,tofu firm,3,172462,"Mori-Nu, Tofu, Silken, Extra Firm",0.9,False
+whole_wheat_flour,whole wheat flour,1,168893,"Wheat Flour, Whole-Grain (Includes Foods For Usda'S Food Distribution Program)",0.93,True
+whole_wheat_flour,whole wheat flour,2,168944,"Wheat Flour, Whole-Grain, Soft Wheat",0.93,False
+whole_wheat_flour,whole wheat flour,3,790085,"Flour, Whole Wheat, Unenriched",0.93,False
+ghee,butter oil,1,173412,"Butter Oil, Anhydrous",0.9,True
+ghee,butter oil,2,172339,"Margarine-Like, Margarine-Butter Blend, Soybean Oil And Butter",0.9,False
+ghee,butter oil,3,171421,"Oil, Cocoa Butter",0.9,False
+soya_chunks,soy protein,1,174301,"Soy Protein Concentrate, Produced By Acid Wash",0.9,True
+soya_chunks,soy protein,2,172447,"Soy Protein Concentrate, Produced By Alcohol Extraction",0.9,False
+soya_chunks,soy protein,3,174276,Soy Protein Isolate,0.9,False
+green_peas,peas green raw,1,170419,"Peas, Green, Raw",0.93,True
+green_peas,peas green raw,2,172428,"Peas, Green, Split, Mature Seeds, Raw",0.93,False
+green_peas,peas green raw,3,2709797,"Green Peas, Raw",0.93,False
+quinoa,quinoa uncooked,1,168874,"Quinoa, Uncooked",0.9,True
+quinoa,quinoa uncooked,2,173096,"Beef, New Zealand, Imported, Variety Meats And By-Products, Tripe Uncooked, Raw",0.455,False
+quinoa,quinoa uncooked,3,170682,"Amaranth Grain, Uncooked",0.425,False
+bell_pepper,peppers sweet raw,1,170427,"Peppers, Sweet, Green, Raw",0.93,True
+bell_pepper,peppers sweet raw,2,170108,"Peppers, Sweet, Red, Raw",0.93,False
+bell_pepper,peppers sweet raw,3,169383,"Peppers, Sweet, Yellow, Raw",0.93,False
+soya_granules,soy protein,1,174301,"Soy Protein Concentrate, Produced By Acid Wash",0.9,True
+soya_granules,soy protein,2,172447,"Soy Protein Concentrate, Produced By Alcohol Extraction",0.9,False
+soya_granules,soy protein,3,174276,Soy Protein Isolate,0.9,False
+cucumber,cucumber raw,1,169225,"Cucumber, Peeled, Raw",0.93,True
+cucumber,cucumber raw,2,168409,"Cucumber, With Peel, Raw",0.93,False
+cucumber,cucumber raw,3,2709784,"Cucumber, Raw",0.93,False
+tomato,tomatoes red raw,1,170457,"Tomatoes, Red, Ripe, Raw, Year Round Average",0.93,True
+tomato,tomatoes red raw,2,168201,"Apples, Raw, Red Delicious, With Skin (Includes Foods For Usda'S Food Distribution Program)",0.53,False
+tomato,tomatoes red raw,3,173742,"Beans, Kidney, California Red, Mature Seeds, Raw",0.53,False
+moong_sprouts,mung beans sprouted,1,169957,"Mung Beans, Mature Seeds, Sprouted, Raw",0.93,True
+moong_sprouts,mung beans sprouted,2,168499,"Mung Beans, Mature Seeds, Sprouted, Cooked, Boiled, Drained, With Salt",0.9,False
+moong_sprouts,mung beans sprouted,3,169137,"Mung Beans, Mature Seeds, Sprouted, Cooked, Boiled, Drained, Without Salt",0.9,False
+olive_oil,oil olive salad cooking,1,171413,"Oil, Olive, Salad Or Cooking",0.9,True
+olive_oil,oil olive salad cooking,2,171433,"Oil, Cooking And Salad, Enova, 80% Diglycerides",0.538,False
+olive_oil,oil olive salad cooking,3,171029,"Oil, Corn, Industrial And Retail, All Purpose Salad Or Cooking",0.538,False
+urad,urad beans,1,173727,"Beans, Adzuki, Mature Seeds, Raw",0.455,False
+urad,urad beans,2,175186,"Beans, Black Turtle, Mature Seeds, Raw",0.455,False
+urad,urad beans,3,173734,"Beans, Black, Mature Seeds, Raw",0.455,False
+rajma,kidney beans raw,1,175193,"Beans, Kidney, All Types, Mature Seeds, Raw",0.93,True
+rajma,kidney beans raw,2,173742,"Beans, Kidney, California Red, Mature Seeds, Raw",0.93,False
+rajma,kidney beans raw,3,169213,"Beans, Kidney, Mature Seeds, Sprouted, Raw",0.93,False
+chickpeas_roasted,chickpeas raw,1,173756,"Chickpeas (Garbanzo Beans, Bengal Gram), Mature Seeds, Raw",0.93,True
+chickpeas_roasted,chickpeas raw,2,168664,"Beef, Brisket, Whole, Separable Lean And Fat, Trimmed To 1/8"" Fat, All Grades, Raw",0.485,False
+chickpeas_roasted,chickpeas raw,3,168607,"Beef, Brisket, Whole, Separable Lean Only, All Grades, Raw",0.485,False
+soy_milk,soymilk unsweetened,1,175223,"Silk Unsweetened, Soymilk",0.9,True
+soy_milk,soymilk unsweetened,2,175215,"Soymilk (All Flavors), Unsweetened, With Added Calcium, Vitamins A And D",0.9,False
+soy_milk,soymilk unsweetened,3,173768,"Soymilk, Original And Vanilla, Light, Unsweetened, With Added Calcium, Vitamins A And D",0.9,False
+edamame,edamame frozen,1,168411,"Edamame, Frozen, Prepared",0.9,True
+edamame,edamame frozen,2,168410,"Edamame, Frozen, Unprepared",0.9,False
+edamame,edamame frozen,3,2758981,"Edamame, Frozen, Prepared",0.9,False
+soya_nuts,soybeans roasted,1,172441,"Soybeans, Mature Seeds, Dry Roasted",0.9,True
+soya_nuts,soybeans roasted,2,174300,"Soybeans, Mature Seeds, Roasted, No Salt Added",0.9,False
+soya_nuts,soybeans roasted,3,172440,"Soybeans, Mature Seeds, Roasted, Salted",0.82,False
+mustard_oil,oil mustard,1,172337,"Oil, Mustard",0.9,True
+mustard_oil,oil mustard,2,168976,"Agutuk, Fish/Berry With Seal Oil (Alaskan Ice Cream) (Alaska Native)",0.425,False
+mustard_oil,oil mustard,3,173412,"Butter Oil, Anhydrous",0.425,False
+cheese_blend,cheese mozzarella,1,170845,"Cheese, Mozzarella, Whole Milk",0.93,True
+cheese_blend,cheese mozzarella,2,170846,"Cheese, Mozzarella, Whole Milk, Low Moisture",0.93,False
+cheese_blend,cheese mozzarella,3,172198,"Cheese Substitute, Mozzarella",0.9,False
+soy_flour,soy flour,1,174273,"Soy Flour, Full-Fat, Raw",0.93,True
+soy_flour,soy flour,2,174656,"Incaparina, Dry Mix (Corn And Soy Flours), Unprepared",0.9,False
+soy_flour,soy flour,3,174275,"Soy Flour, Defatted",0.9,False
+quinoa_rice_mix,quinoa uncooked,1,168874,"Quinoa, Uncooked",0.9,True
+quinoa_rice_mix,quinoa uncooked,2,173096,"Beef, New Zealand, Imported, Variety Meats And By-Products, Tripe Uncooked, Raw",0.455,False
+quinoa_rice_mix,quinoa uncooked,3,170682,"Amaranth Grain, Uncooked",0.425,False

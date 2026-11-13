@@ -7,7 +7,7 @@ Two deliberate choices:
 1. Nutrient lookup reads the CSV itself and keeps blanks as None. The matcher's
    load_foods() fills missing nutrients with 0.0, which would silently turn
    "unknown" into "zero" and defeat math_engine's missing-data tracking.
-2. nutrient_overrides (data/nutrient_overrides.json) beat the CSV. Use them for
+2. nutrient_overrides (agent_data/nutrient_overrides.json) beat the CSV. Use them for
    foods USDA lacks, e.g. paneer, with a `source` note for each entry:
        {"paneer_low_fat": {"source": "package label ...",
                            "per_100g": {"calories_kcal": ..., "protein_g": ..., "fat_g": ..., "carbs_g": ...}}}

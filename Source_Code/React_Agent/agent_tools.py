@@ -11,7 +11,7 @@ from pathlib import Path
 
 from food_db import FoodDB
 from ingredient_registry import ingredient_matches
-from nutrition_engine.math_engine import aggregate_results, calculate_meal, calculate_recipe
+from math_engine import aggregate_results, calculate_meal, calculate_recipe
 
 MEAL_TYPES = ("breakfast", "lunch", "dinner", "snack")
 MAX_SERVINGS = 3.0

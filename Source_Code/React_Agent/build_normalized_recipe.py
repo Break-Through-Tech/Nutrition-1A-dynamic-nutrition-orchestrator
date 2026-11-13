@@ -1,14 +1,14 @@
-"""Offline step: data/recipes.json  ->  data/recipes_normalized.json
+"""Offline step: agent_data/recipes.json  ->  agent_data/recipes_normalized.json
 
 For every recipe line this (1) converts the quantity to grams using
 ingredient_registry, (2) runs the NLP matcher once per ingredient to pick an
 FDC id, and (3) records what could not be computed and why.
 
-Run once, then REVIEW data/match_review.csv: it lists the top-3 FDC candidates
-for every ingredient. Put the ones you confirm in data/fdc_overrides.json
+Run once, then REVIEW agent_data/match_review.csv: it lists the top-3 FDC candidates
+for every ingredient. Put the ones you confirm in agent_data/fdc_overrides.json
 ({"tofu": 174290, ...}) and re-run; overrides always win over the matcher.
 
-    python build_recipes.py --recipes data/recipes.json --foods path/to/clean_usda_foods.csv
+    python build_recipes.py --recipes agent_data/recipes.json --foods path/to/clean_usda_foods.csv
 """
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ import csv
 import json
 from pathlib import Path
 
-import scripts.ingredient_matching as im
+import ingredient_matching as im
 from food_db import FoodDB, _load_json
 from ingredient_registry import ENTRY_BY_ID, normalize_line
 
@@ -106,12 +106,12 @@ def summarize(normalized: list[dict]) -> str:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--recipes", default="data/recipes.json")
-    ap.add_argument("--out", default="data/recipes_normalized.json")
+    ap.add_argument("--recipes", default="agent_data/recipes.json")
+    ap.add_argument("--out", default="agent_data/recipes_normalized.json")
     ap.add_argument("--foods", default=None, help="USDA CSV (default: ingredient_matching.FOODS_PATH)")
-    ap.add_argument("--fdc-overrides", default="data/fdc_overrides.json")
-    ap.add_argument("--nutrient-overrides", default="data/nutrient_overrides.json")
-    ap.add_argument("--review", default="data/match_review.csv")
+    ap.add_argument("--fdc-overrides", default="agent_data/fdc_overrides.json")
+    ap.add_argument("--nutrient-overrides", default="agent_data/nutrient_overrides.json")
+    ap.add_argument("--review", default="agent_data/match_review.csv")
     a = ap.parse_args()
 
     db = FoodDB.from_paths(a.foods, a.nutrient_overrides)
